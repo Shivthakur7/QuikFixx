@@ -21,7 +21,7 @@ const DefaultIcon = new Icon({
 });
 
 const HomePage: React.FC = () => {
-    const [position] = useState<[number, number]>([12.9716, 77.5946]); // Bangalore Default
+    const [position] = useState<[number, number]>([26.2183, 78.1828]); // Gwalior Default
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const { socket } = useSocket();
 
@@ -70,7 +70,7 @@ const HomePage: React.FC = () => {
             <div style={{ position: 'absolute', top: '20px', left: '20px', right: '20px', zIndex: 1000, display: 'flex', gap: '10px' }}>
                 <div className="glass-card" style={{ flex: 1, padding: '10px 20px', display: 'flex', alignItems: 'center' }}>
                     <Search size={20} style={{ marginRight: '10px', color: 'var(--color-text-secondary)' }} />
-                    <input type="text" placeholder="Where in Bangalore?" style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%' }} />
+                    <input type="text" placeholder="Where in Gwalior?" style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%' }} />
                 </div>
                 <button
                     className="btn-primary"
@@ -79,7 +79,7 @@ const HomePage: React.FC = () => {
                             await api.post('/providers/onboard', { skills: ['electrician', 'plumber'] });
                             // Also set online and update location immediately for testing
                             await api.post('/providers/status', { isOnline: true });
-                            await api.patch('/providers/location', { lat: 12.9716, lng: 77.5946 });
+                            await api.patch('/providers/location', { lat: 26.2183, lng: 78.1828 });
                             alert('You are now a Driver (Online)!');
                         } catch (e) {
                             alert('Incomplete or already registered.');
