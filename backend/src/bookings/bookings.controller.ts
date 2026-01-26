@@ -27,6 +27,11 @@ export class BookingsController {
     return this.bookingsService.createBooking(req.user.userId, body);
   }
 
+  @Get('my')
+  async getMyBookings(@Request() req: AuthenticatedRequest) {
+    return this.bookingsService.findMyBookings(req.user.userId);
+  }
+
   @Get(':id')
   async getBooking(@Param('id') id: string) {
     return this.bookingsService.findOne(id);

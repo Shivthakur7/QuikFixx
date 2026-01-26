@@ -5,13 +5,14 @@ import {
   UseGuards,
   Body,
   Get,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   @Post('login')
   async login(@Body() req) {
@@ -22,7 +23,7 @@ export class AuthController {
       req.password,
     );
     if (!validUser) {
-      throw new Error('Invalid credentials'); // Use proper ExceptionFilter
+      throw new UnauthorizedException('Invalid credentials');
     }
     return this.authService.login(validUser);
   }

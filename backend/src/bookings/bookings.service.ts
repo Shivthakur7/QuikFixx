@@ -10,7 +10,7 @@ export class BookingsService {
     @InjectRepository(Order)
     private ordersRepository: Repository<Order>,
     private dispatchService: DispatchService,
-  ) {}
+  ) { }
 
   async createBooking(userId: string, createOrderDto: any) {
     // 1. Create Order in DB
@@ -40,5 +40,12 @@ export class BookingsService {
 
   async findOne(id: string) {
     return this.ordersRepository.findOne({ where: { id } });
+  }
+
+  async findMyBookings(userId: string) {
+    return this.ordersRepository.find({
+      where: { customerId: userId },
+      order: { createdAt: 'DESC' },
+    });
   }
 }

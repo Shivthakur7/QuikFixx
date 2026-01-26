@@ -1,17 +1,30 @@
 import React from 'react';
-import { X, Zap, Wrench, Droplet } from 'lucide-react';
+import { X, Zap, Wrench, Hammer, Paintbrush, Shovel, Settings } from 'lucide-react';
 
 interface BookingPanelProps {
     onClose: () => void;
-    onBook: (serviceType: string) => void;
+    onSubmit: (serviceType: string) => void;
+    initialService?: string;
 }
 
-const BookingPanel: React.FC<BookingPanelProps> = ({ onClose, onBook }) => {
+const BookingPanel: React.FC<BookingPanelProps> = ({ onClose, onSubmit, initialService }) => {
+    // We can use this state to highlight the selected service if we want a "Confirm" step.
+    // For now, clicking the icon triggers the book immediately as per original design.
+
     const services = [
-        { id: 'electrician', name: 'Electrician', icon: <Zap size={24} color="#f6e58d" /> },
-        { id: 'plumber', name: 'Plumber', icon: <Droplet size={24} color="#74b9ff" /> },
-        { id: 'mechanic', name: 'Mechanic', icon: <Wrench size={24} color="#ff7675" /> },
+        { id: 'electrician', name: 'Electrician', icon: <Zap size={24} color="#facc15" /> },
+        { id: 'plumber', name: 'Plumber', icon: <Wrench size={24} color="#3b82f6" /> },
+        { id: 'carpenter', name: 'Carpenter', icon: <Hammer size={24} color="#a855f7" /> },
+        { id: 'painter', name: 'Painter', icon: <Paintbrush size={24} color="#ec4899" /> },
+        { id: 'gardener', name: 'Gardener', icon: <Shovel size={24} color="#22c55e" /> },
+        { id: 'mechanic', name: 'Mechanic', icon: <Settings size={24} color="#64748b" /> },
     ];
+
+    // If initialService exists, we could auto-trigger or highlight.
+    // For this MVP, let's just show the grid, but if initialService matches one, maybe we could highlight it?
+    // Or simpler: The user clicked "Plumber" on landing page -> Map opens -> Panel opens -> They confirm "Plumber" by clicking it again or we add a "Confirm Booking" button.
+
+    // Let's stick to: Click on icon -> Book. 
 
     return (
         <div
@@ -37,16 +50,18 @@ const BookingPanel: React.FC<BookingPanelProps> = ({ onClose, onBook }) => {
                 {services.map(s => (
                     <div
                         key={s.id}
-                        onClick={() => onBook(s.id)}
+                        onClick={() => onSubmit(s.id)}
                         style={{
-                            background: 'rgba(255,255,255,0.05)',
+                            background: initialService === s.id ? 'rgba(108, 92, 231, 0.3)' : 'rgba(255,255,255,0.05)',
+                            borderColor: initialService === s.id ? '#6c5ce7' : 'transparent',
                             padding: '20px',
                             borderRadius: '12px',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             cursor: 'pointer',
-                            border: '1px solid transparent',
+                            borderWidth: '1px',
+                            borderStyle: 'solid',
                             transition: 'all 0.2s'
                         }}
                     >
