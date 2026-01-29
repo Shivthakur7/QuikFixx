@@ -19,8 +19,10 @@ export class UsersService {
         'passwordHash',
         'fullName',
         'phoneNumber',
+        'address',
         'createdAt',
       ], // Explicitly select passwordHash for auth
+      relations: ['provider'],
     });
   }
 
@@ -34,9 +36,18 @@ export class UsersService {
       return await this.usersRepository.save(newUser);
     } catch (error: any) {
       if (error.code === '23505') {
-        throw new ConflictException('Email already exists');
+        throw new ConflictException('Email or Phone number already exists');
       }
       throw error;
     }
+  }
+
+  async update(id: string, attrs: Partial<User>) {
+    const user = await this.findOneById(id);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    Object.assign(user, attrs);
+    return this.usersRepository.save(user);
   }
 }

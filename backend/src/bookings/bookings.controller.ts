@@ -36,4 +36,9 @@ export class BookingsController {
   async getBooking(@Param('id') id: string) {
     return this.bookingsService.findOne(id);
   }
+
+  @Get('provider/requests')
+  async getProviderRequests(@Request() req: AuthenticatedRequest) {
+    return this.bookingsService.findProviderBookings(req.user.userId);
+  }
 }

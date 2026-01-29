@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User, Star, MapPin, X } from 'lucide-react';
+import ProviderPublicProfileModal from './ProviderPublicProfileModal';
 
 interface ProviderListPanelProps {
     providers: any[];
     onClose: () => void;
+    onBookProvider: (provider: any) => void;
 }
 
-const ProviderListPanel: React.FC<ProviderListPanelProps> = ({ providers, onClose }) => {
+const ProviderListPanel: React.FC<ProviderListPanelProps> = ({ providers, onClose, onBookProvider }) => {
+    const [selectedProvider, setSelectedProvider] = useState<any>(null);
+
     return (
         <div className="glass-card" style={{
             position: 'absolute',
@@ -45,7 +49,7 @@ const ProviderListPanel: React.FC<ProviderListPanelProps> = ({ providers, onClos
                         </div>
                         <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <h4 style={{ margin: 0 }}>{p.providerId.substring(0, 8)}...</h4>
+                                <h4 style={{ margin: 0 }}>{p.name || 'Service Professional'}</h4>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#fdcb6e', fontSize: '12px' }}>
                                     <Star size={12} fill="#fdcb6e" /> 4.8
                                 </span>
@@ -54,12 +58,25 @@ const ProviderListPanel: React.FC<ProviderListPanelProps> = ({ providers, onClos
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={12} /> {p.distance.toFixed(1)}km away</span>
                             </div>
                         </div>
-                        <button className="btn-primary" style={{ padding: '8px 15px', borderRadius: '8px', fontSize: '12px' }}>
+                        <button
+                            className="btn-primary"
+                            style={{ padding: '8px 15px', borderRadius: '8px', fontSize: '12px' }}
+                            onClick={() => setSelectedProvider(p)}
+                        >
                             View
                         </button>
                     </div>
                 ))}
             </div>
+
+            <ProviderPublicProfileModal
+                provider={selectedProvider}
+                onClose={() => setSelectedProvider(null)}
+                onBook={() => {
+                    onBookProvider(selectedProvider);
+                    setSelectedProvider(null);
+                }}
+            />
         </div>
     );
 };

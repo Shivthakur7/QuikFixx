@@ -22,6 +22,9 @@ export class User {
   @Column()
   fullName: string;
 
+  @Column({ nullable: true })
+  address: string;
+
   @Column({ select: false }) // Don't return password by default
   passwordHash: string;
 

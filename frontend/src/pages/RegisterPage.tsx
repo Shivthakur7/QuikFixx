@@ -25,10 +25,12 @@ const RegisterPage: React.FC = () => {
             const response = await api.post('/auth/register', { email, password, fullName: fullName, phoneNumber: phoneNumber });
             login(response.data.access_token, response.data.user);
             showToast('Registration Successful', 'success');
-            navigate('/');
+
+            navigate('/map');
         } catch (err: any) {
             console.error(err);
-            showToast('Registration failed', 'error');
+            const message = err.response?.data?.message || 'Registration failed';
+            showToast(Array.isArray(message) ? message[0] : message, 'error');
         }
     };
 

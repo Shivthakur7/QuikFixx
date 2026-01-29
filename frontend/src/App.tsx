@@ -16,6 +16,8 @@ import { ToastProvider } from './context/ToastContext';
 import LandingPage from './pages/LandingPage';
 import ProviderLoginPage from './pages/ProviderLoginPage';
 import ProviderRegisterPage from './pages/ProviderRegisterPage';
+import ProviderDashboardPage from './pages/ProviderDashboardPage';
+import ProviderProfilePage from './pages/ProviderProfilePage';
 
 import AccountPage from './pages/AccountPage';
 
@@ -31,6 +33,24 @@ const App: React.FC = () => {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/login/provider" element={<ProviderLoginPage />} />
               <Route path="/register/provider" element={<ProviderRegisterPage />} />
+
+              {/* Provider Routes */}
+              <Route
+                path="/provider/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <ProviderDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/provider/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProviderProfilePage />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Protected Routes */}
               <Route

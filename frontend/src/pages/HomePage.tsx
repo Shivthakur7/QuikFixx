@@ -1,40 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import { User, Briefcase, MapPin, Crosshair, ArrowLeft } from 'lucide-react';
+// Map Removed
+import { User, Briefcase, MapPin, Crosshair, ArrowLeft, Star } from 'lucide-react';
 import api from '../utils/api';
-import { Icon } from 'leaflet';
-import ProviderListPanel from '../components/ProviderListPanel';
+import ProviderPublicProfileModal from '../components/ProviderPublicProfileModal';
 import { useSocket } from '../context/SocketContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-// Fix Leaflet Default Icon
-import iconUrl from 'leaflet/dist/images/marker-icon.png';
-import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
-import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+import { SERVICES_LIST } from '../constants/services';
 
-const DefaultIcon = new Icon({
-    iconUrl: iconUrl,
-    iconRetinaUrl: iconRetinaUrl,
-    shadowUrl: shadowUrl,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-});
-
-const servicesList = [
-    { id: 'electrician', name: 'Electrician', desc: 'Wiring, repairs, and installations.' },
-    { id: 'plumber', name: 'Plumber', desc: 'Pipe fixes, leaks, and fittings.' },
-    { id: 'carpenter', name: 'Carpenter', desc: 'Furniture repair and custom woodworks.' },
-    { id: 'painter', name: 'Painter', desc: 'Wall painting, textures, and finishes.' },
-    { id: 'mason', name: 'Mason', desc: 'Construction, tiling, and concrete work.' },
-    { id: 'gardener', name: 'Gardener', desc: 'Lawn care, planting, and maintenance.' },
-    { id: 'cook', name: 'Cook', desc: 'Home-cooked meals and culinary services.' },
-    { id: 'maid', name: 'Maid', desc: 'House cleaning and organizing.' },
-    { id: 'tutor', name: 'Home Tutor', desc: 'Private lessons for K-12 and more.' },
-    { id: 'mechanic', name: 'Mechanic', desc: 'Car and bike repairs at your doorstep.' },
-];
+const servicesList = SERVICES_LIST;
 
 const HomePage: React.FC = () => {
     const { user } = useAuth();
@@ -46,15 +22,18 @@ const HomePage: React.FC = () => {
     const [viewMode, setViewMode] = useState<'dashboard' | 'map'>('dashboard');
 
     const [providers, setProviders] = useState<any[]>([]);
+    const [selectedProvider, setSelectedProvider] = useState<any>(null);
 
     const { socket } = useSocket();
     const { showToast } = useToast();
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Auto-select from Landing Page
+    // Auto-select from Landing Page or URL
     useEffect(() => {
-        if (location.state && location.state.service) {
+        if (location.pathname === '/map') {
+            setViewMode('map');
+        } else if (location.state && location.state.service) {
             handleServiceSelect(location.state.service);
         }
     }, [location]);
@@ -91,15 +70,16 @@ const HomePage: React.FC = () => {
 
         // Trigger search immediately
         try {
-            const res = await api.post('/bookings', {
+            const res = await api.post('/providers/search', {
                 serviceType: serviceId,
-                location: { lat: position[0], lng: position[1] }
+                lat: position[0],
+                lng: position[1]
             });
-            console.log('Dispatch Result:', res.data);
+            console.log('Search Result:', res.data);
 
-            if (res.data.dispatch.candidates.length > 0) {
-                setProviders(res.data.dispatch.candidates);
-                showToast(`Found ${res.data.dispatch.candidates.length} providers nearby!`, 'success');
+            if (res.data.length > 0) {
+                setProviders(res.data);
+                showToast(`Found ${res.data.length} providers nearby!`, 'success');
             } else {
                 setProviders([]);
                 showToast('No providers found nearby for ' + serviceId, 'error');
@@ -107,6 +87,24 @@ const HomePage: React.FC = () => {
         } catch (err) {
             console.error(err);
             showToast('Failed to search providers', 'error');
+        }
+    };
+
+    const handleBookProvider = async (provider: any) => {
+        try {
+            // provider.providerId is from the search result (which came from Redis/Dispatch logic)
+            // Wait, search results from dispatch.service have { providerId: '...' }
+            const res = await api.post('/bookings', {
+                serviceType: provider.serviceType || 'general', // You might need to track selectedServiceId better
+                location: { lat: position[0], lng: position[1] },
+                providerId: provider.providerEntityId // Use the actual Provider ID
+            });
+            showToast('Booking request sent to ' + (provider.name || 'provider'), 'success');
+            setProviders([]);
+            setViewMode('dashboard');
+        } catch (err) {
+            console.error(err);
+            showToast('Failed to book provider', 'error');
         }
     };
 
@@ -217,34 +215,84 @@ const HomePage: React.FC = () => {
                 </div>
             )}
 
-            {/* --- MAP VIEW --- */}
+            {/* --- PROVIDER LIST VIEW (formerly Map) --- */}
             {viewMode === 'map' && (
-                <div style={{ height: '100vh', position: 'relative' }}>
-                    {/* Back Button */}
-                    <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 1000 }}>
-                        <button onClick={() => setViewMode('dashboard')} className="glass-card" style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', color: 'white' }}>
+                <div style={{ minHeight: '100vh', background: 'var(--color-bg-primary)', paddingBottom: '20px' }}>
+                    {/* Header */}
+                    <div style={{
+                        padding: '20px',
+                        display: 'flex', alignItems: 'center', gap: '15px',
+                        background: 'linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Gwalior_Fort_View.jpg/1200px-Gwalior_Fort_View.jpg")',
+                        backgroundSize: 'cover',
+                        borderBottomLeftRadius: '24px',
+                        borderBottomRightRadius: '24px',
+                        marginBottom: '20px'
+                    }}>
+                        <button onClick={() => setViewMode('dashboard')} style={{ background: 'rgba(255,255,255,0.2)', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', color: 'white' }}>
                             <ArrowLeft size={20} />
                         </button>
+                        <h2 style={{ margin: 0 }}>Available Providers</h2>
                     </div>
 
-                    <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }} zoomControl={false}>
-                        <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                        />
-                        <Marker position={position} icon={DefaultIcon}>
-                            <Popup>Your Location</Popup>
-                        </Marker>
-                    </MapContainer>
-
-                    {/* Provider List */}
-                    {providers.length > 0 && (
-                        <ProviderListPanel
-                            providers={providers}
-                            onClose={() => setViewMode('dashboard')}
-                        />
-                    )}
+                    {/* Providers Grid */}
+                    <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        {providers.length === 0 ? (
+                            <div style={{ textAlign: 'center', color: '#a0a0b0', padding: '40px 0' }}>
+                                <p>No providers found nearby.</p>
+                                <button onClick={() => setViewMode('dashboard')} className="btn-primary" style={{ marginTop: '10px' }}>Try another service</button>
+                            </div>
+                        ) : (
+                            providers.map((p, i) => (
+                                <div key={i} className="glass-card" style={{
+                                    padding: '15px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '15px'
+                                }}>
+                                    <div style={{
+                                        width: '60px', height: '60px',
+                                        borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, #a29bfe, #6c5ce7)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '24px', fontWeight: 'bold'
+                                    }}>
+                                        {p.name ? p.name.charAt(0) : <User color="white" />}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                            <h4 style={{ margin: '0 0 5px 0', fontSize: '18px' }}>{p.name || 'Service Professional'}</h4>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#fdcb6e', fontSize: '14px', fontWeight: 'bold' }}>
+                                                <Star size={14} fill="#fdcb6e" /> 4.8
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#a0a0b0' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={14} /> {p.distance?.toFixed(1) || 0}km away</span>
+                                        </div>
+                                        <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#a0a0b0' }}>
+                                            {p.skillTags?.slice(0, 3).join(', ') || 'General Service'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        className="btn-primary"
+                                        style={{ padding: '8px 20px', borderRadius: '12px', fontSize: '14px' }}
+                                        onClick={() => setSelectedProvider(p)}
+                                    >
+                                        View
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
+            )}
+
+            {/* Modal */}
+            {selectedProvider && (
+                <ProviderPublicProfileModal
+                    provider={selectedProvider}
+                    onClose={() => setSelectedProvider(null)}
+                    onBook={() => handleBookProvider(selectedProvider)}
+                />
             )}
 
             {/* Bottom Nav (Visible only on Dashboard) */}

@@ -26,7 +26,7 @@ const ProviderLoginPage: React.FC = () => {
 
             login(token, res.data.user);
             showToast('Welcome back, Partner!', 'success');
-            navigate('/map');
+            navigate('/provider/dashboard');
         } catch (err: any) {
             console.error(err);
             showToast('Invalid Provider Credentials', 'error');

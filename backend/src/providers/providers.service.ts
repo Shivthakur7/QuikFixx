@@ -65,4 +65,46 @@ export class ProvidersService {
 
     return { status: isOnline ? 'ONLINE' : 'OFFLINE' };
   }
+
+  async getProviderById(id: string) {
+    return this.providersRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
+  }
+
+  async searchProviders(lat: number, lng: number, serviceType: string, radius: number = 5) {
+    const candidates = await this.redisService.getNearbyProviders(
+      lat,
+      lng,
+      radius,
+      serviceType,
+    );
+
+    const validCandidates: any[] = [];
+    for (const candidate of candidates) {
+      // 1. Check Status
+      const status = await this.redisService.getProviderStatus(candidate.providerId);
+      if (status === 'ONLINE') {
+        // 2. Fetch Details
+        const providerDetails = await this.findByUserId(candidate.providerId);
+        if (providerDetails && providerDetails.user) {
+          validCandidates.push({
+            ...candidate,
+            name: providerDetails.user.fullName,
+            providerEntityId: providerDetails.id,
+            skillTags: providerDetails.skillTags
+          });
+        }
+      }
+    }
+    return validCandidates;
+  }
+
+  async findByUserId(userId: string) {
+    return this.providersRepository.findOne({
+      where: { userId },
+      relations: ['user'],
+    });
+  }
 }

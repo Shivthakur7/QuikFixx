@@ -43,4 +43,9 @@ export class ProvidersController {
   async setStatus(@Request() req: AuthenticatedRequest, @Body() body: { isOnline: boolean }) {
     return this.providersService.setStatus(req.user.userId, body.isOnline);
   }
+
+  @Post('search')
+  async search(@Body() body: { lat: number; lng: number; serviceType: string }) {
+    return this.providersService.searchProviders(body.lat, body.lng, body.serviceType);
+  }
 }

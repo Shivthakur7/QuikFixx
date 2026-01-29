@@ -3,8 +3,12 @@ import { RedisService } from '../redis/redis.service';
 import { Order } from '../entities/order.entity';
 import { EventsGateway } from '../events/events.gateway';
 
+import { ProvidersService } from '../providers/providers.service';
+
 export interface Candidate {
-  providerId: string;
+  providerId: string; // This is actually the User ID (redis key)
+  name?: string;
+  providerEntityId?: string; // The actual Provider Table ID
   distance: number;
   location: { lat: number; lng: number };
 }
@@ -15,19 +19,17 @@ export class DispatchService {
 
   constructor(
     private redisService: RedisService,
-    private eventsGateway: EventsGateway
+    private eventsGateway: EventsGateway,
+    private providersService: ProvidersService,
   ) { }
 
   async dispatchOrder(order: Order) {
+    // ... (logging)
     this.logger.log(
       `Dispatching Order ${order.id} for service ${order.serviceType}`,
     );
 
-    // 1. Find Search Radius (Start small: 3km)
     const RADIUS_KM = 3;
-
-    // 2. Query Redis for candidates
-    // Assuming serviceType maps directly to redis category
     const candidates = await this.redisService.getNearbyProviders(
       order.locationLat,
       order.locationLng,
@@ -39,33 +41,34 @@ export class DispatchService {
       `Found ${candidates.length} candidates in ${RADIUS_KM}km radius`,
     );
 
-    // 3. Filter by Online Status
-    // Ideally use MGET to check status for all candidates quickly
-    // For MVP, filter sequentially or assume Redis return is enough if we manage sets carefully
-    // But we are storing status in separate key `provider:ID:status`.
-
     const validCandidates: Candidate[] = [];
     for (const candidate of candidates) {
+      // 1. Check Status
       const status = await this.redisService.getProviderStatus(
         candidate.providerId,
       );
+
       if (status === 'ONLINE') {
-        validCandidates.push(candidate);
+        // 2. Fetch Details (Name)
+        // Redis stores userId as providerId
+        const providerDetails = await this.providersService.findByUserId(candidate.providerId);
+        if (providerDetails && providerDetails.user) {
+          validCandidates.push({
+            ...candidate,
+            name: providerDetails.user.fullName,
+            providerEntityId: providerDetails.id // The actual Provider Table ID
+          });
+        }
       }
     }
 
     this.logger.log(`Found ${validCandidates.length} ONLINE candidates`);
 
     if (validCandidates.length === 0) {
-      // Todo: Implement expansion logic (retry with larger radius)
       return { dispatched: false, reason: 'NO_PROVIDERS_FOUND' };
     }
 
-    // 4. Sort by Distance (Redis GEORADIUS already allows sorting, but double check)
-    // We used 'ASC' in RedisService, so it's sorted.
-
-    // 5. Broadcast (Simulated for HTTP MVP -> Real WebSockets Phase 4)
-    // In a real WebSocket app, we would emit events here.
+    // Broadcast
     for (const candidate of validCandidates) {
       this.eventsGateway.notifyUser(candidate.providerId, 'booking.new', {
         orderId: order.id,

@@ -17,8 +17,14 @@ const LoginPage: React.FC = () => {
         try {
             const response = await api.post('/auth/login', { email, password });
             login(response.data.access_token, response.data.user);
+            login(response.data.access_token, response.data.user);
             showToast('Login Successful', 'success');
-            navigate('/');
+
+            if (response.data.user.provider) {
+                navigate('/provider/dashboard');
+            } else {
+                navigate('/map'); // Or based on previous logic, but map is default for customers
+            }
         } catch (err: any) {
             console.error(err);
             showToast(err.response?.data?.message || 'Invalid Credentials', 'error');
