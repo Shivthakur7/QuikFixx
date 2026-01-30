@@ -40,14 +40,18 @@ export class ProvidersService {
     await this.providersRepository.save(provider);
 
     // 2. Update Redis (Real-time)
-    // Assuming we have categories. For now hardcode or fetch from skills.
-    const category = provider.skillTags?.[0] || 'general';
-    await this.redisService.updateProviderLocation(
-      userId, // Use userId so DispatchService returns userId, matching Socket room
-      lat,
-      lng,
-      category,
-    );
+    const categories = (provider.skillTags && provider.skillTags.length > 0)
+      ? provider.skillTags
+      : ['general'];
+
+    for (const category of categories) {
+      await this.redisService.updateProviderLocation(
+        userId,
+        lat,
+        lng,
+        category,
+      );
+    }
 
     return { success: true };
   }

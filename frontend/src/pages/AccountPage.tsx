@@ -119,34 +119,63 @@ const AccountPage: React.FC = () => {
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     {bookings.map((booking: any) => (
-                        <div key={booking.id} className="glass-card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <h4 style={{ margin: '0 0 5px 0', textTransform: 'capitalize' }}>{booking.serviceType}</h4>
-                                <div style={{ display: 'flex', gap: '15px', color: '#a0a0b0', fontSize: '12px' }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} /> {new Date(booking.createdAt).toLocaleDateString()}</span>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={12} /> {new Date(booking.createdAt).toLocaleTimeString()}</span>
+                        <div key={booking.id}>
+                            <div className="glass-card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h4 style={{ margin: '0 0 5px 0', textTransform: 'capitalize' }}>{booking.serviceType}</h4>
+                                    <div style={{ display: 'flex', gap: '15px', color: '#a0a0b0', fontSize: '12px' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} /> {new Date(booking.createdAt).toLocaleDateString()}</span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={12} /> {new Date(booking.createdAt).toLocaleTimeString()}</span>
+                                    </div>
+                                    <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
+                                        <MapPin size={12} color="#00cec9" /> {Number(booking.locationLat || 0).toFixed(4)}, {Number(booking.locationLng || 0).toFixed(4)}
+                                    </div>
                                 </div>
-                                <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
-                                    <MapPin size={12} color="#00cec9" /> {Number(booking.locationLat || 0).toFixed(4)}, {Number(booking.locationLng || 0).toFixed(4)}
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontWeight: 'bold', fontSize: '18px', color: '#00cec9' }}>₹{booking.priceEstimated}</div>
+                                    <span style={{
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        fontSize: '10px',
+                                        background: booking.status === 'COMPLETED' ? 'rgba(0,206,201,0.2)' : 'rgba(253,203,110,0.2)',
+                                        color: booking.status === 'COMPLETED' ? '#00cec9' : '#fdcb6e'
+                                    }}>
+                                        {booking.status}
+                                    </span>
                                 </div>
                             </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontWeight: 'bold', fontSize: '18px', color: '#00cec9' }}>₹{booking.priceEstimated}</div>
-                                <span style={{
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '10px',
-                                    background: booking.status === 'COMPLETED' ? 'rgba(0,206,201,0.2)' : 'rgba(253,203,110,0.2)',
-                                    color: booking.status === 'COMPLETED' ? '#00cec9' : '#fdcb6e'
-                                }}>
-                                    {booking.status}
-                                </span>
-                            </div>
+                            {/* Provider Details Section */}
+                            {
+                                booking.status === 'ACCEPTED' && booking.provider && (
+                                    <div className="glass-card" style={{ marginTop: '10px', padding: '15px', background: 'rgba(108, 92, 231, 0.1)', border: '1px solid rgba(108, 92, 231, 0.3)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                            <div style={{
+                                                width: '40px', height: '40px', borderRadius: '50%',
+                                                background: 'linear-gradient(135deg, #a29bfe, #6c5ce7)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontWeight: 'bold', color: 'white'
+                                            }}>
+                                                {booking.provider.user?.fullName?.[0] || 'P'}
+                                            </div>
+                                            <div>
+                                                <h5 style={{ margin: 0, fontSize: '14px', color: 'white' }}>{booking.provider.user?.fullName || 'Provider Assigned'}</h5>
+                                                <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#a0a0b0' }}>
+                                                    Has accepted your request. They will arrive shortly.
+                                                </p>
+                                            </div>
+                                            <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                                                <button className="btn-primary" style={{ fontSize: '12px', padding: '6px 12px' }}>Call</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            }
                         </div>
                     ))}
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };
 

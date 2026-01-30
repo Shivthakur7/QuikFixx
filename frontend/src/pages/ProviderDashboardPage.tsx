@@ -35,6 +35,18 @@ const ProviderDashboardPage: React.FC = () => {
         };
     }, [socket, showToast]);
 
+    const handleStatusUpdate = async (bookingId: string, status: 'ACCEPTED' | 'CANCELLED') => {
+        try {
+            await api.post(`/bookings/${bookingId}/status`, { status });
+            showToast(`Booking ${status.toLowerCase()} successfully`, 'success');
+            // Remove from list or update local state
+            setBookings(prev => prev.filter(b => b.id !== bookingId));
+        } catch (err) {
+            console.error('Failed to update status', err);
+            showToast('Failed to update status', 'error');
+        }
+    };
+
     return (
         <div className="app-container" style={{ paddingBottom: '80px', background: 'var(--color-bg-primary)' }}>
             {/* Header */}
@@ -97,21 +109,43 @@ const ProviderDashboardPage: React.FC = () => {
                                 </div>
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '5px' }}>
+                                    <Briefcase size={14} />
+                                    <span>Service: <strong>{booking.serviceType || 'General'}</strong></span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '5px' }}>
+                                    <User size={14} />
+                                    <span style={{ color: 'white' }}>{booking.customer ? booking.customer.fullName : 'Customer'}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '5px' }}>
                                     <MapPin size={14} />
-                                    <span>Location updates...</span>
+                                    <span>{booking.locationGeo ? `${booking.locationLat}, ${booking.locationLng}` : 'Location provided'}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '5px' }}>
+                                    <Calendar size={14} />
+                                    <span>{new Date(booking.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
                                     <DollarSign size={14} />
-                                    <span>Est. Price: {booking.price || 'Pending'}</span>
+                                    <span>Est. Price: {booking.price || '500'}</span>
                                 </div>
 
                                 <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-                                    <button className="btn-primary" style={{ flex: 1, fontSize: '14px', padding: '8px' }}>Accept</button>
+                                    <button
+                                        className="btn-primary"
+                                        style={{ flex: 1, fontSize: '14px', padding: '8px' }}
+                                        onClick={() => handleStatusUpdate(booking.id, 'ACCEPTED')}
+                                    >
+                                        Accept
+                                    </button>
                                     <button style={{
                                         flex: 1, padding: '8px', border: '1px solid rgba(255,50,50,0.5)',
                                         background: 'transparent', color: '#ff6b6b', borderRadius: '8px',
                                         fontSize: '14px', cursor: 'pointer'
-                                    }}>Decline</button>
+                                    }}
+                                        onClick={() => handleStatusUpdate(booking.id, 'CANCELLED')}
+                                    >
+                                        Decline
+                                    </button>
                                 </div>
                             </div>
                         ))}

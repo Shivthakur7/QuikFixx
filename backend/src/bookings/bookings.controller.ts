@@ -41,4 +41,13 @@ export class BookingsController {
   async getProviderRequests(@Request() req: AuthenticatedRequest) {
     return this.bookingsService.findProviderBookings(req.user.userId);
   }
+
+  @Post(':id/status')
+  async updateBookingStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string }
+  ) {
+    // Basic validation could be improved (e.g. check enum values)
+    return this.bookingsService.updateStatus(id, body.status as any);
+  }
 }

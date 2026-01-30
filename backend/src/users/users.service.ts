@@ -27,7 +27,10 @@ export class UsersService {
   }
 
   async findOneById(id: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { id } });
+    return this.usersRepository.findOne({
+      where: { id },
+      relations: ['provider'],
+    });
   }
 
   async create(userData: Partial<User>): Promise<User> {

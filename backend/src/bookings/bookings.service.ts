@@ -74,6 +74,7 @@ export class BookingsService {
     return this.ordersRepository.find({
       where: { customerId: userId },
       order: { createdAt: 'DESC' },
+      relations: ['provider', 'provider.user'],
     });
   }
 
@@ -89,6 +90,15 @@ export class BookingsService {
     return this.ordersRepository.find({
       where: { providerId: provider.id }, // Assuming status PENDING is what we want, or all? Let's return all for now or filter by PENDING/ACCEPTED
       order: { createdAt: 'DESC' },
+      relations: ['customer'],
     });
+  }
+  async updateStatus(bookingId: string, status: OrderStatus) {
+    const order = await this.ordersRepository.findOne({ where: { id: bookingId } });
+    if (!order) {
+      throw new Error('Booking not found');
+    }
+    order.status = status;
+    return this.ordersRepository.save(order);
   }
 }

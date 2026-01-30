@@ -8,7 +8,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findOneByEmail(email);
@@ -20,7 +20,9 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { email: user.email, sub: user.id, role: 'customer' }; // Todo: Add role to user entity
+    const role = user.provider ? 'provider' : 'customer';
+    console.log(`User ${user.email} logged in with role: ${role}`); // Direct console log for visibility
+    const payload = { email: user.email, sub: user.id, role };
     return {
       access_token: this.jwtService.sign(payload),
       user: user,

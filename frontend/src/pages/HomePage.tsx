@@ -78,7 +78,12 @@ const HomePage: React.FC = () => {
             console.log('Search Result:', res.data);
 
             if (res.data.length > 0) {
-                setProviders(res.data);
+                // Stamp the serviceType onto each provider result so we know what they were searched for
+                const providersWithService = res.data.map((p: any) => ({
+                    ...p,
+                    serviceType: serviceId
+                }));
+                setProviders(providersWithService);
                 showToast(`Found ${res.data.length} providers nearby!`, 'success');
             } else {
                 setProviders([]);
@@ -92,9 +97,10 @@ const HomePage: React.FC = () => {
 
     const handleBookProvider = async (provider: any) => {
         try {
+            console.log('Booking Provider Object:', provider);
             // provider.providerId is from the search result (which came from Redis/Dispatch logic)
             // Wait, search results from dispatch.service have { providerId: '...' }
-            const res = await api.post('/bookings', {
+            await api.post('/bookings', {
                 serviceType: provider.serviceType || 'general', // You might need to track selectedServiceId better
                 location: { lat: position[0], lng: position[1] },
                 providerId: provider.providerEntityId // Use the actual Provider ID

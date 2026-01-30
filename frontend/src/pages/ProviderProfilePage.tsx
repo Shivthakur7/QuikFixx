@@ -41,23 +41,30 @@ const ProviderProfilePage: React.FC = () => {
                 </div>
 
                 {/* Services Section */}
-                {user?.provider?.skillTags && user.provider.skillTags.length > 0 && (
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        {user.provider.skillTags.map((skill: string, index: number) => (
-                            <div key={index} style={{
-                                padding: '6px 14px',
-                                background: 'rgba(255, 255, 255, 0.05)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: '15px',
-                                color: '#dfe6e9',
-                                fontSize: '13px',
-                                textTransform: 'capitalize'
-                            }}>
-                                {skill}
-                            </div>
-                        ))}
-                    </div>
-                )}
+                {/* Services Section */}
+                <div style={{ marginTop: '20px', width: '100%' }}>
+                    <h4 style={{ color: '#a0a0b0', fontSize: '14px', marginBottom: '10px', textAlign: 'center' }}>My Services</h4>
+                    {user?.provider?.skillTags && user.provider.skillTags.length > 0 ? (
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                            {user.provider.skillTags.map((skill: string, index: number) => (
+                                <div key={index} style={{
+                                    padding: '8px 16px',
+                                    background: 'rgba(108, 92, 231, 0.15)',
+                                    border: '1px solid rgba(108, 92, 231, 0.3)',
+                                    borderRadius: '20px',
+                                    color: '#a29bfe',
+                                    fontSize: '14px',
+                                    textTransform: 'capitalize',
+                                    letterSpacing: '0.5px'
+                                }}>
+                                    {skill}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p style={{ textAlign: 'center', color: '#636e72', fontSize: '14px' }}>No services listed yet.</p>
+                    )}
+                </div>
             </div>
 
             <div style={{ padding: '20px' }}>

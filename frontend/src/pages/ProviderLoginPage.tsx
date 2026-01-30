@@ -18,10 +18,9 @@ const ProviderLoginPage: React.FC = () => {
             const res = await api.post('/auth/login', { email, password });
             const token = res.data.access_token;
             // Check if provider profile exists
-            try {
-                // We'd ideally check role here, but for now we proceed
-            } catch (pErr) {
-                console.warn(pErr);
+            if (!res.data.user.provider) {
+                showToast('This account is not a registered Provider.', 'error');
+                return;
             }
 
             login(token, res.data.user);
