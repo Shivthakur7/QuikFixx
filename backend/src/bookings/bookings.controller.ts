@@ -44,10 +44,11 @@ export class BookingsController {
 
   @Post(':id/status')
   async updateBookingStatus(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: { status: string }
   ) {
     // Basic validation could be improved (e.g. check enum values)
-    return this.bookingsService.updateStatus(id, body.status as any);
+    return this.bookingsService.updateStatus(id, body.status as any, req.user.userId);
   }
 }

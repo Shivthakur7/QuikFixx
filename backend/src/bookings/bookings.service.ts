@@ -16,14 +16,21 @@ export class BookingsService {
   ) { }
 
   async createBooking(userId: string, createOrderDto: any) {
+    // Construct Service Type with Items if available
+    let serviceType = createOrderDto.serviceType;
+    if (createOrderDto.items && createOrderDto.items.length > 0) {
+      const itemNames = createOrderDto.items.map((i: any) => i.name).join(', ');
+      serviceType = `${serviceType}: ${itemNames}`;
+    }
+
     // 1. Create Order in DB
     const newOrder = this.ordersRepository.create({
       customerId: userId,
-      serviceType: createOrderDto.serviceType,
+      serviceType: serviceType,
       locationLat: createOrderDto.location.lat,
       locationLng: createOrderDto.location.lng,
       status: OrderStatus.PENDING,
-      priceEstimated: 500.0, // Mock pricing
+      priceEstimated: createOrderDto.price || 500.0,
       providerId: createOrderDto.providerId || null, // Direct assignment if provided
       locationGeo: {
         type: 'Point',
@@ -93,11 +100,21 @@ export class BookingsService {
       relations: ['customer'],
     });
   }
-  async updateStatus(bookingId: string, status: OrderStatus) {
+  async updateStatus(bookingId: string, status: OrderStatus, providerUserId?: string) {
     const order = await this.ordersRepository.findOne({ where: { id: bookingId } });
     if (!order) {
       throw new Error('Booking not found');
     }
+
+    // If accepting, assign the provider if not already assigned
+    if (status === OrderStatus.ACCEPTED && providerUserId) {
+      const provider = await this.providersService.findByUserId(providerUserId);
+      if (provider) {
+        order.provider = provider;
+        order.providerId = provider.id;
+      }
+    }
+
     order.status = status;
     return this.ordersRepository.save(order);
   }

@@ -13,6 +13,41 @@ const ProviderDashboardPage: React.FC = () => {
     const navigate = useNavigate();
     const [bookings, setBookings] = useState<any[]>([]);
 
+    // Location Tracking Logic
+    useEffect(() => {
+        if (!socket) return;
+        let watchId: number | null = null;
+
+        // Track ALL active accepted/in-progress bookings
+        const activeBookings = bookings.filter(b => b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS');
+
+        if (activeBookings.length > 0) {
+            console.log('Starting Location Tracking for Bookings:', activeBookings.map(b => b.id));
+            if (navigator.geolocation) {
+                watchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        const { latitude, longitude } = pos.coords;
+                        // Emit update for EACH active booking
+                        activeBookings.forEach(booking => {
+                            socket.emit('updateLocation', {
+                                bookingId: booking.id,
+                                lat: latitude,
+                                lng: longitude
+                            });
+                        });
+                        console.log('Location sent for bookings:', activeBookings.length, latitude, longitude);
+                    },
+                    (err) => console.error('Location Watch Error:', err),
+                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+                );
+            }
+        }
+
+        return () => {
+            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        };
+    }, [socket, bookings]); // Re-run when job list/status changes
+
     useEffect(() => {
         // Fetch existing bookings
         api.get('/bookings/provider/requests')
@@ -39,8 +74,10 @@ const ProviderDashboardPage: React.FC = () => {
         try {
             await api.post(`/bookings/${bookingId}/status`, { status });
             showToast(`Booking ${status.toLowerCase()} successfully`, 'success');
-            // Remove from list or update local state
-            setBookings(prev => prev.filter(b => b.id !== bookingId));
+            // Update local state to reflect the new status
+            setBookings(prev => prev.map(b =>
+                b.id === bookingId ? { ...b, status } : b
+            ));
         } catch (err) {
             console.error('Failed to update status', err);
             showToast('Failed to update status', 'error');
@@ -103,8 +140,13 @@ const ProviderDashboardPage: React.FC = () => {
                             <div key={idx} className="glass-card" style={{ padding: '15px', borderLeft: '4px solid var(--color-accent)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                                     <h4 style={{ margin: 0 }}>{booking.serviceType || 'Service Request'}</h4>
-                                    <span style={{ fontSize: '12px', background: 'rgba(108, 92, 231, 0.2)', color: '#a29bfe', padding: '4px 8px', borderRadius: '4px' }}>
-                                        New
+                                    <span style={{
+                                        fontSize: '12px',
+                                        background: booking.status === 'ACCEPTED' ? 'rgba(0, 206, 201, 0.2)' : 'rgba(108, 92, 231, 0.2)',
+                                        color: booking.status === 'ACCEPTED' ? '#00cec9' : '#a29bfe',
+                                        padding: '4px 8px', borderRadius: '4px'
+                                    }}>
+                                        {booking.status || 'New'}
                                     </span>
                                 </div>
 
@@ -130,22 +172,33 @@ const ProviderDashboardPage: React.FC = () => {
                                 </div>
 
                                 <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-                                    <button
-                                        className="btn-primary"
-                                        style={{ flex: 1, fontSize: '14px', padding: '8px' }}
-                                        onClick={() => handleStatusUpdate(booking.id, 'ACCEPTED')}
-                                    >
-                                        Accept
-                                    </button>
-                                    <button style={{
-                                        flex: 1, padding: '8px', border: '1px solid rgba(255,50,50,0.5)',
-                                        background: 'transparent', color: '#ff6b6b', borderRadius: '8px',
-                                        fontSize: '14px', cursor: 'pointer'
-                                    }}
-                                        onClick={() => handleStatusUpdate(booking.id, 'CANCELLED')}
-                                    >
-                                        Decline
-                                    </button>
+                                    {booking.status === 'ACCEPTED' ? (
+                                        <button
+                                            className="btn-primary"
+                                            style={{ flex: 1, fontSize: '14px', padding: '8px', background: '#00cec9', cursor: 'default' }}
+                                        >
+                                            In Progress (Sharing Location)
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button
+                                                className="btn-primary"
+                                                style={{ flex: 1, fontSize: '14px', padding: '8px' }}
+                                                onClick={() => handleStatusUpdate(booking.id, 'ACCEPTED')}
+                                            >
+                                                Accept
+                                            </button>
+                                            <button style={{
+                                                flex: 1, padding: '8px', border: '1px solid rgba(255,50,50,0.5)',
+                                                background: 'transparent', color: '#ff6b6b', borderRadius: '8px',
+                                                fontSize: '14px', cursor: 'pointer'
+                                            }}
+                                                onClick={() => handleStatusUpdate(booking.id, 'CANCELLED')}
+                                            >
+                                                Decline
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         ))}

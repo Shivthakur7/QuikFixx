@@ -42,12 +42,17 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.to(`user:${userId}`).emit(event, payload);
     }
 
+    @SubscribeMessage('joinBooking')
+    handleJoinBooking(@ConnectedSocket() client: Socket, @MessageBody() data: { bookingId: string }) {
+        const roomName = `booking:${data.bookingId}`;
+        client.join(roomName);
+        this.logger.log(`Client ${client.id} joined room: ${roomName}`);
+    }
+
     @SubscribeMessage('updateLocation')
-    handleLocationUpdate(@ConnectedSocket() client: Socket, @MessageBody() data: { lat: number; lng: number }) {
-        // In a real app, we'd broadcast this to the person tracking them.
-        // For now, just log or echo.
-        const userId = client.handshake.query.userId;
-        // Broadcast to anyone tracking this user (e.g., room `track:USER_ID`)
-        // this.server.to(`track:${userId}`).emit('provider.location', data);
+    handleLocationUpdate(@ConnectedSocket() client: Socket, @MessageBody() data: { bookingId: string; lat: number; lng: number }) {
+        this.logger.debug(`Location update for booking ${data.bookingId}: ${data.lat}, ${data.lng}`);
+        // Broadcast to the specific booking room so customers watching this booking see it
+        this.server.to(`booking:${data.bookingId}`).emit('provider.location', data);
     }
 }

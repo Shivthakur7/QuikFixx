@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Briefcase, MapPin, Crosshair, ArrowLeft, Star } from 'lucide-react';
 import api from '../utils/api';
 import ProviderPublicProfileModal from '../components/ProviderPublicProfileModal';
+import SubServiceSelectionModal from '../components/SubServiceSelectionModal';
 import { useSocket } from '../context/SocketContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -65,7 +66,30 @@ const HomePage: React.FC = () => {
         }
     };
 
-    const handleServiceSelect = async (serviceId: string) => {
+
+
+    const [selectedServiceForModal, setSelectedServiceForModal] = useState<any>(null);
+    const [bookingDetails, setBookingDetails] = useState<{ items: any[], price: number }>({ items: [], price: 0 });
+
+    const handleServiceSelect = (serviceId: string) => {
+        const service = servicesList.find(s => s.id === serviceId);
+        if (service && service.subServices && service.subServices.length > 0) {
+            setSelectedServiceForModal(service);
+        } else {
+            // Legacy/No-sub-service flow
+            startProviderSearch(serviceId, [], 500);
+        }
+    };
+
+    const handleSubServiceConfirm = (selectedItems: any[], totalPrice: number) => {
+        if (!selectedServiceForModal) return;
+
+        startProviderSearch(selectedServiceForModal.id, selectedItems, totalPrice);
+        setSelectedServiceForModal(null);
+    };
+
+    const startProviderSearch = async (serviceId: string, items: any[], price: number) => {
+        setBookingDetails({ items, price });
         setViewMode('map');
 
         // Trigger search immediately
@@ -103,11 +127,14 @@ const HomePage: React.FC = () => {
             await api.post('/bookings', {
                 serviceType: provider.serviceType || 'general', // You might need to track selectedServiceId better
                 location: { lat: position[0], lng: position[1] },
-                providerId: provider.providerEntityId // Use the actual Provider ID
+                providerId: provider.providerEntityId, // Use the actual Provider ID
+                items: bookingDetails.items,
+                price: bookingDetails.price
             });
             showToast('Booking request sent to ' + (provider.name || 'provider'), 'success');
             setProviders([]);
             setViewMode('dashboard');
+            setBookingDetails({ items: [], price: 0 });
         } catch (err) {
             console.error(err);
             showToast('Failed to book provider', 'error');
@@ -116,6 +143,16 @@ const HomePage: React.FC = () => {
 
     return (
         <div className="app-container">
+            {/* Modal */}
+            {selectedServiceForModal && (
+                <SubServiceSelectionModal
+                    serviceName={selectedServiceForModal.name}
+                    subServices={selectedServiceForModal.subServices || []}
+                    onClose={() => setSelectedServiceForModal(null)}
+                    onConfirm={handleSubServiceConfirm}
+                />
+            )}
+
             {/* --- DASHBOARD VIEW --- */}
             {viewMode === 'dashboard' && (
                 <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '80px', background: 'var(--color-bg-primary)' }}>
