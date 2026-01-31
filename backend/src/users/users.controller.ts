@@ -8,7 +8,7 @@ export class UsersController {
     constructor(private usersService: UsersService) { }
 
     @Patch('profile')
-    async updateProfile(@Request() req: any, @Body() body: { address?: string }) {
+    async updateProfile(@Request() req: any, @Body() body: { fullName?: string; phoneNumber?: string; address?: string }) {
         return this.usersService.update(req.user.userId, body);
     }
 }

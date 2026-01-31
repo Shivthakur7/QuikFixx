@@ -11,6 +11,7 @@ import { RedisModule } from './redis/redis.module';
 import { ProvidersModule } from './providers/providers.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { EventsModule } from './events/events.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { EventsModule } from './events/events.module';
     ProvidersModule,
     BookingsModule,
     EventsModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

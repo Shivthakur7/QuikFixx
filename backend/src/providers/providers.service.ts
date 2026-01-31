@@ -93,11 +93,37 @@ export class ProvidersService {
         // 2. Fetch Details
         const providerDetails = await this.findByUserId(candidate.providerId);
         if (providerDetails && providerDetails.user) {
+
+          // 3. Fetch Stats (Jobs Done & Reviews)
+          const jobsDone = await this.providersRepository.manager
+            .createQueryBuilder()
+            .select('COUNT(*)', 'count')
+            .from('orders', 'order')
+            .where('order.providerId = :pid', { pid: providerDetails.id })
+            .andWhere("order.status = 'COMPLETED'")
+            .getRawOne();
+
+          const reviewCount = await this.providersRepository.manager
+            .count('reviews', { where: { provider: { id: providerDetails.id } } });
+
+          // Calculate Member Since / Experience
+          const memberSince = new Date(providerDetails.createdAt);
+          const now = new Date();
+          const diffTime = Math.abs(now.getTime() - memberSince.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          const experienceString = diffDays > 365 ? `${Math.floor(diffDays / 365)} Years` : `${diffDays} Days`;
+
           validCandidates.push({
             ...candidate,
             name: providerDetails.user.fullName,
             providerEntityId: providerDetails.id,
-            skillTags: providerDetails.skillTags
+            skillTags: providerDetails.skillTags,
+            rating: providerDetails.rating, // Ensure we pass the rating from DB
+            stats: {
+              jobsDone: parseInt(jobsDone.count) || 0,
+              reviewCount: reviewCount || 0,
+              experience: experienceString
+            }
           });
         }
       }
@@ -105,10 +131,39 @@ export class ProvidersService {
     return validCandidates;
   }
 
-  async findByUserId(userId: string) {
+  async findByUserId(userId: string): Promise<Provider | null> {
     return this.providersRepository.findOne({
       where: { userId },
       relations: ['user'],
+    });
+  }
+
+  async updateRating(providerId: string) {
+    // This requires Review repository access or a raw query. 
+    // Since ProvidersService doesn't inject ReviewRepo (circular dep risk if logic in ReviewService calls ProviderService),
+    // we can use a raw query or forwardRef. 
+    // Simplest: ReviewService calls this, but ProviderService needs to know how to calculate.
+    // Let's use QueryBuilder on Provider entity to join reviews? No, easier to inject EntityManager or just do it in ReviewService?
+    // ReviewService triggered this, so it's active. 
+    // Actually, let's keep it simple: ReviewService calculates and just calls providersRepository.update().
+    // BUT user asked for `updateRating` in ProvidersService.
+    // Let's assume we can query the reviews table using QueryRunner or similar if we don't want to inject ReviewRepo.
+
+    // Better approach: Let ReviewsService handle the calculation logic (it has access to Review Repo) 
+    // and pass the new average to ProvidersService.updateAverage(id, avg).
+    // OR create a method here that uses `this.providersRepository.manager` to query reviews.
+
+    const result = await this.providersRepository.manager
+      .createQueryBuilder()
+      .select('AVG(review.rating)', 'average')
+      .from('reviews', 'review')
+      .where('review.provider_id = :providerId', { providerId })
+      .getRawOne();
+
+    const averageRating = parseFloat(result.average) || 5.0; // Default to 5.0 if no reviews? Or 0? Let's say 5 for new. 
+
+    await this.providersRepository.update(providerId, {
+      rating: parseFloat(averageRating.toFixed(2))
     });
   }
 }

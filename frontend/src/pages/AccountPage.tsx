@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { MapPin, Clock, Calendar, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import RateProviderModal from '../components/RateProviderModal';
+import EditProfileModal from '../components/EditProfileModal';
 
 import { useSocket } from '../context/SocketContext';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
@@ -29,12 +31,15 @@ const AccountPage: React.FC = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
     const [bookings, setBookings] = useState<any[]>([]);
-    const [address, setAddress] = useState(user?.address || '');
+    // Reusing isEditingAddress as the "Edit Profile" modal toggle for simplicity
     const [isEditingAddress, setIsEditingAddress] = useState(false);
 
     // Tracking State
     const [trackingBookingId, setTrackingBookingId] = useState<string | null>(null);
     const [providerLocation, setProviderLocation] = useState<{ lat: number, lng: number } | null>(null);
+
+    // Rating State
+    const [ratingBookingId, setRatingBookingId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!socket || !trackingBookingId) return;
@@ -53,27 +58,6 @@ const AccountPage: React.FC = () => {
             socket.off('provider.location', handleLocation);
         };
     }, [socket, trackingBookingId]);
-
-    const handleUpdateAddress = async () => {
-        try {
-            const res = await api.patch('/users/profile', { address });
-            // Update local user context is tricky without a full reload or complex reducer, 
-            // but we can just update the object for now if login() supports it, 
-            // OR just rely on the component state for immediate feedback.
-            // Ideally: updateAuthUser({ ...user, address });
-            // For now, let's just update the local storage/state hackily or re-fetch profile.
-            // Simplified: we will just assume success and update local state to show it.
-            // To make it persist in context:
-            const updatedUser = { ...user, address };
-            login(localStorage.getItem('accessToken') || '', updatedUser);
-
-            setIsEditingAddress(false);
-            showToast('Address updated successfully', 'success');
-        } catch (err) {
-            console.error(err);
-            showToast('Failed to update address', 'error');
-        }
-    };
 
     useEffect(() => {
         const fetchBookings = async () => {
@@ -120,35 +104,25 @@ const AccountPage: React.FC = () => {
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
                         <MapPin size={16} color="#a0a0b0" />
-                        {isEditingAddress ? (
-                            <div style={{ display: 'flex', gap: '5px' }}>
-                                <input
-                                    type="text"
-                                    value={address}
-                                    onChange={(e) => setAddress(e.target.value)}
-                                    className="input-field"
-                                    style={{ padding: '4px 8px', fontSize: '12px', width: '200px' }}
-                                    placeholder="Enter your address"
-                                />
-                                <button onClick={handleUpdateAddress} className="btn-primary" style={{ padding: '4px 8px', fontSize: '12px' }}>Save</button>
-                            </div>
-                        ) : (
-                            <span style={{ color: '#dfe6e9', fontSize: '14px' }}>
-                                {address || 'Location not set'}
-                            </span>
-                        )}
-                        {!isEditingAddress && (
-                            <button onClick={() => setIsEditingAddress(true)} style={{ background: 'transparent', border: 'none', color: '#00cec9', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline' }}>
-                                Edit
-                            </button>
-                        )}
+                        <span style={{ color: '#dfe6e9', fontSize: '14px' }}>
+                            {user.address || 'Location not set'}
+                        </span>
                     </div>
 
-                    <div style={{ marginTop: '15px' }}>
+                    <button
+                        onClick={() => setIsEditingAddress(true)}
+                        className="btn-primary"
+                        style={{ marginTop: '15px', fontSize: '12px', padding: '6px 12px' }}
+                    >
+                        Edit Profile
+                    </button>
+
+                    <div style={{ marginTop: '10px' }}>
                         <button onClick={() => { logout(); navigate('/'); }} style={{ background: 'transparent', border: '1px solid #ff7675', color: '#ff7675', padding: '5px 15px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>
                             Logout
                         </button>
                     </div>
+
                 </div>
             </div>
 
@@ -217,13 +191,36 @@ const AccountPage: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-                            )
-                            }
+                            )}
+
+                            {/* Rate Provider Button */}
+                            {booking.status === 'COMPLETED' && (
+                                <div style={{ marginTop: '10px', textAlign: 'right' }}>
+                                    <button
+                                        onClick={() => setRatingBookingId(booking.id)}
+                                        className="btn-primary"
+                                        style={{ fontSize: '12px', padding: '6px 12px', background: '#fdcb6e', color: '#2d3436', fontWeight: 'bold' }}
+                                    >
+                                        Rate Provider
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
-            )
-            }
+            )}
+
+            {/* Rating Modal */}
+            {ratingBookingId && (
+                <RateProviderModal
+                    bookingId={ratingBookingId}
+                    onClose={() => setRatingBookingId(null)}
+                    onSuccess={() => {
+                        setRatingBookingId(null);
+                        // Optionally refresh bookings or mark as reviewed locally
+                    }}
+                />
+            )}
             {/* Live Tracking Map Modal (Simplified Inline for MVP) */}
             {/* Live Tracking Map Modal */}
             {/* Live Tracking Map Modal */}
@@ -395,6 +392,14 @@ const AccountPage: React.FC = () => {
                     </div>
                 );
             })()}
+
+            {isEditingAddress && (
+                <EditProfileModal
+                    currentUser={user}
+                    onClose={() => setIsEditingAddress(false)}
+                    onSuccess={() => setIsEditingAddress(false)}
+                />
+            )}
         </div>
     );
 };
