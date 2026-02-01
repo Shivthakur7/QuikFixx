@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -15,22 +16,28 @@ const ProviderDashboardPage: React.FC = () => {
     const [bookings, setBookings] = useState<any[]>([]);
     const [otpInputs, setOtpInputs] = useState<{ [key: string]: string }>({});
 
+
+
     // Location Tracking Logic
     useEffect(() => {
         if (!socket) return;
         let watchId: number | null = null;
         const activeBookings = bookings.filter(b => b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS');
-        if (activeBookings.length > 0) {
-            if (navigator.geolocation) {
-                watchId = navigator.geolocation.watchPosition((pos) => {
-                    const { latitude, longitude } = pos.coords;
-                    activeBookings.forEach(booking => {
-                        socket.emit('updateLocation', { bookingId: booking.id, lat: latitude, lng: longitude });
-                    });
-                }, (err) => console.error(err), { enableHighAccuracy: true });
-            }
+
+        if (activeBookings.length > 0 && navigator.geolocation) {
+            watchId = navigator.geolocation.watchPosition((pos) => {
+                const { latitude, longitude } = pos.coords;
+                activeBookings.forEach(booking => {
+                    socket.emit('updateLocation', { bookingId: booking.id, lat: latitude, lng: longitude });
+                });
+            }, (err) => {
+                console.error("Location Watch Error:", err);
+            }, { enableHighAccuracy: true });
         }
-        return () => { if (watchId !== null) navigator.geolocation.clearWatch(watchId); };
+
+        return () => {
+            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        };
     }, [socket, bookings]);
 
     useEffect(() => {

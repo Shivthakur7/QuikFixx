@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+
 // Map Removed
 import { User, Briefcase, MapPin, Crosshair, ArrowLeft, Star } from 'lucide-react';
 import api from '../utils/api';
@@ -51,6 +52,7 @@ const HomePage: React.FC = () => {
         };
     }, [socket]);
 
+
     const detectLocation = () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -74,10 +76,12 @@ const HomePage: React.FC = () => {
                         });
                 },
                 (err) => {
-                    console.error(err);
-                    showToast("Location access denied. Using default.", "error");
+                    console.error("Location Error", err);
+                    showToast("Location access denied or failed.", "error");
                 }
             );
+        } else {
+            showToast("Geolocation is not supported by this browser.", "error");
         }
     };
 
