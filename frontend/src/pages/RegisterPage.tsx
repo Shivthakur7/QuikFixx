@@ -11,12 +11,50 @@ const RegisterPage: React.FC = () => {
     const { login } = useAuth();
     const { showToast } = useToast();
 
+    const [otp, setOtp] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
+    const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleSendOtp = async () => {
+        if (!formData.phoneNumber) return showToast('Please enter mobile number', 'error');
+        try {
+            await api.post('/auth/send-otp', { phoneNumber: formData.phoneNumber });
+            setOtpSent(true);
+            showToast('OTP sent to ' + formData.phoneNumber, 'success');
+        } catch (err: any) {
+            showToast(err.response?.data?.message || 'Failed to send OTP', 'error');
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        try {
+            const res = await api.post('/auth/verify-otp', { phoneNumber: formData.phoneNumber, code: otp });
+            if (res.data.success) {
+                setIsPhoneVerified(true);
+                setOtpSent(false); // Hide OTP field
+                showToast('Phone Number Verified!', 'success');
+            } else {
+                showToast('Invalid OTP', 'error');
+            }
+        } catch (err: any) {
+            showToast('Verification Failed', 'error');
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!isPhoneVerified) {
+            return showToast('Please verify your phone number first', 'error');
+        }
+        if (!emailRegex.test(formData.email)) {
+            return showToast('Please enter a valid email address', 'error');
+        }
         try {
             // Destructure formData for clarity and to match the requested payload structure
             const { email, password, fullName, phoneNumber } = formData;
@@ -68,18 +106,48 @@ const RegisterPage: React.FC = () => {
                         />
                     </div>
 
-                    <div style={{ marginBottom: '15px', position: 'relative' }}>
-                        <Phone size={18} style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--color-text-secondary)' }} />
-                        <input
-                            type="tel"
-                            name="phoneNumber"
-                            placeholder="Phone Number"
-                            className="input-field"
-                            style={{ paddingLeft: '40px' }}
-                            value={formData.phoneNumber}
-                            onChange={handleChange}
-                            required
-                        />
+                    <div style={{ marginBottom: '15px' }}>
+                        <div style={{ position: 'relative' }}>
+                            <Phone size={18} style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--color-text-secondary)' }} />
+                            <input
+                                type="tel"
+                                name="phoneNumber"
+                                placeholder="Phone Number"
+                                className="input-field"
+                                style={{ paddingLeft: '40px', paddingRight: isPhoneVerified ? '40px' : '90px' }}
+                                value={formData.phoneNumber}
+                                onChange={handleChange}
+                                disabled={isPhoneVerified}
+                                required
+                            />
+                            {isPhoneVerified && <Lock size={16} color="#00b894" style={{ position: 'absolute', right: '12px', top: '15px' }} />}
+
+                            {!isPhoneVerified && formData.phoneNumber.length > 9 && !otpSent && (
+                                <button
+                                    type="button"
+                                    onClick={handleSendOtp}
+                                    style={{
+                                        position: 'absolute', right: '5px', top: '5px', bottom: '5px',
+                                        background: 'var(--color-primary)', border: 'none', borderRadius: '8px',
+                                        color: 'white', fontSize: '12px', padding: '0 10px', cursor: 'pointer'
+                                    }}>
+                                    Verify
+                                </button>
+                            )}
+                        </div>
+                        {otpSent && !isPhoneVerified && (
+                            <div style={{ display: 'flex', marginTop: '10px', gap: '5px' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Enter OTP"
+                                    className="input-field"
+                                    style={{ flex: 1 }}
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                />
+                                <button type="button" onClick={handleVerifyOtp} className="btn-primary" style={{ padding: '0 15px' }}>Check</button>
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ marginBottom: '30px', position: 'relative' }}>
@@ -96,7 +164,7 @@ const RegisterPage: React.FC = () => {
                         />
                     </div>
 
-                    <button type="submit" className="btn-primary" style={{ width: '100%' }}>
+                    <button type="submit" className="btn-primary" style={{ width: '100%', opacity: isPhoneVerified ? 1 : 0.6, cursor: isPhoneVerified ? 'pointer' : 'not-allowed' }} disabled={!isPhoneVerified}>
                         Create Account
                     </button>
                 </form>

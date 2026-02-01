@@ -5,9 +5,16 @@ import {
   Body,
   UseGuards,
   Request,
+  Get,
+  Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { ProvidersService } from './providers.service';
 import { AuthGuard } from '@nestjs/passport';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 import { Request as ExpressRequest } from 'express';
 
@@ -28,7 +35,7 @@ export class ProvidersController {
   @Patch('location')
   async updateLocation(
     @Request() req: AuthenticatedRequest,
-    @Body() body: { lat: number; lng: number },
+    @Body() body: { lat: number; lng: number; address?: string },
   ) {
     // req.user.userId is the User ID from JWT.
     // Provider definition: linked to User.
@@ -36,7 +43,22 @@ export class ProvidersController {
       req.user.userId,
       body.lat,
       body.lng,
+      body.address,
     );
+  }
+
+  @Post('upload-verification')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, cb) => {
+        const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+        return cb(null, `${randomName}${extname(file.originalname)}`);
+      }
+    })
+  }))
+  async uploadVerification(@Request() req: AuthenticatedRequest, @UploadedFile() file: any) {
+    return this.providersService.submitVerification(req.user.userId, file.filename);
   }
 
   @Post('status')

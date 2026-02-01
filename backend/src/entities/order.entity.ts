@@ -64,11 +64,20 @@ export class Order {
   })
   locationGeo: Point;
 
+  @Column({ nullable: true })
+  address: string;
+
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   priceEstimated: number;
 
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   priceFinal: number;
+
+  @Column({ nullable: true })
+  startJobOtp: string;
+
+  @Column({ nullable: true })
+  endJobOtp: string;
 
   @CreateDateColumn()
   createdAt: Date;

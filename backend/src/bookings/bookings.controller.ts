@@ -51,4 +51,20 @@ export class BookingsController {
     // Basic validation could be improved (e.g. check enum values)
     return this.bookingsService.updateStatus(id, body.status as any, req.user.userId);
   }
+
+  @Post(':id/verify-start-otp')
+  async verifyStartOtp(
+    @Param('id') id: string,
+    @Body() body: { otp: string }
+  ) {
+    return this.bookingsService.verifyStartOtp(id, body.otp);
+  }
+
+  @Post(':id/verify-end-otp')
+  async verifyEndOtp(
+    @Param('id') id: string,
+    @Body() body: { otp: string }
+  ) {
+    return this.bookingsService.verifyEndOtp(id, body.otp);
+  }
 }

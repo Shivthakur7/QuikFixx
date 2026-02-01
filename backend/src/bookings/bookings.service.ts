@@ -29,14 +29,19 @@ export class BookingsService {
       serviceType: serviceType,
       locationLat: createOrderDto.location.lat,
       locationLng: createOrderDto.location.lng,
-      status: OrderStatus.PENDING,
+      status: OrderStatus.PENDING, // Enforce PENDING
       priceEstimated: createOrderDto.price || 500.0,
       providerId: createOrderDto.providerId || null, // Direct assignment if provided
       locationGeo: {
         type: 'Point',
         coordinates: [createOrderDto.location.lng, createOrderDto.location.lat],
       },
+      address: createOrderDto.address || 'Address not provided',
     });
+
+    // Double-check status before save
+    newOrder.status = OrderStatus.PENDING;
+    console.log(`Creating Booking. Customer: ${userId}, Provider (Direct): ${newOrder.providerId}, Status: ${newOrder.status}`);
 
     const savedOrder = await this.ordersRepository.save(newOrder);
 
@@ -112,10 +117,77 @@ export class BookingsService {
       if (provider) {
         order.provider = provider;
         order.providerId = provider.id;
+
+        // Generate Start OTP (4 digits distinct)
+        order.startJobOtp = Math.floor(1000 + Math.random() * 9000).toString();
       }
     }
+
+    // If completing, ensure we don't just set completed without OTP (unless we want to allow bypass)
+    // But verifyEndOtp handles strict flow. updateStatus is for generic updates.
 
     order.status = status;
     return this.ordersRepository.save(order);
   }
+
+  async verifyStartOtp(bookingId: string, otp: string) {
+    const order = await this.ordersRepository.findOne({ where: { id: bookingId } });
+    if (!order) throw new Error('Booking not found');
+
+    if (order.status !== OrderStatus.ACCEPTED) {
+      throw new Error('Booking must be accepted to start');
+    }
+
+    if (order.startJobOtp !== otp) {
+      throw new Error('Invalid Start OTP');
+    }
+
+    // Move to IN_PROGRESS
+    order.status = OrderStatus.IN_PROGRESS;
+    // Generate End OTP
+    order.endJobOtp = Math.floor(1000 + Math.random() * 9000).toString();
+
+    return this.ordersRepository.save(order);
+  }
+
+  async verifyEndOtp(bookingId: string, otp: string) {
+    const order = await this.ordersRepository.findOne({ where: { id: bookingId } });
+    if (!order) throw new Error('Booking not found');
+
+    if (order.status !== OrderStatus.IN_PROGRESS) {
+      throw new Error('Booking must be in progress to complete');
+    }
+
+    if (order.endJobOtp !== otp) {
+      throw new Error('Invalid End OTP');
+    }
+
+    // Move to COMPLETED
+    order.status = OrderStatus.COMPLETED;
+
+    // Credit Provider Balance
+    if (order.providerId) {
+      const provider = await this.providersService.findById(order.providerId);
+      if (provider) {
+        // Ensure numbers are treated as numbers (decimal often returns string in TypeORM)
+        const amount = Number(order.priceFinal || order.priceEstimated || 0);
+        const currentBalance = Number(provider.balance || 0);
+
+        // Allow update of provider balance via ProvidersService? 
+        // Better to do it here directly or expose method "creditBalance".
+        // Since provider entity is simple, we can save it via provider repo if injected,
+        // or just rely on providersService having a method.
+        // Let's check imports. ProvidersService is imported.
+
+        // We need a method in ProvidersService to update balance safely?
+        // Or just update content if we can access repo? 
+        // ProvidersService likely has repo access.
+
+        await this.providersService.updateBalance(provider.id, currentBalance + amount);
+      }
+    }
+
+    return this.ordersRepository.save(order);
+  }
 }
+

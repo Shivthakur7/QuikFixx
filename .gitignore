@@ -30,3 +30,6 @@ coverage/
 # Misc
 .DS_Store
 Thumbs.db
+
+# User Content
+backend/uploads/

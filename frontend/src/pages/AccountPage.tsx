@@ -79,7 +79,7 @@ const AccountPage: React.FC = () => {
     return (
         <div className="account-container" style={{
             minHeight: '100vh',
-            background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.8)), url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Gwalior_Fort_View.jpg/1200px-Gwalior_Fort_View.jpg')`,
+            background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.8)), url('https://upload.wikipedia.org/wikipedia/commons/thumb/6/6e/Gwalior_Fort_View.jpg/1200px-Gwalior_Fort_View.jpg')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundAttachment: 'fixed',
@@ -189,6 +189,23 @@ const AccountPage: React.FC = () => {
                                                 <button className="btn-primary" style={{ fontSize: '12px', padding: '6px 12px' }}>Call</button>
                                             </a>
                                         </div>
+                                    </div>
+                                    {/* Start OTP Display */}
+                                    {booking.startJobOtp && (
+                                        <div style={{ marginTop: '15px', padding: '10px', background: 'rgba(253, 203, 110, 0.2)', border: '1px dashed #fdcb6e', borderRadius: '8px', textAlign: 'center' }}>
+                                            <p style={{ margin: 0, fontSize: '12px', color: '#fdcb6e' }}>Share this code to START job</p>
+                                            <strong style={{ fontSize: '24px', letterSpacing: '5px', color: 'white' }}>{booking.startJobOtp}</strong>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* End OTP Display for In Progress */}
+                            {booking.status === 'IN_PROGRESS' && booking.endJobOtp && (
+                                <div className="glass-card" style={{ marginTop: '10px', padding: '15px', background: 'rgba(0, 184, 148, 0.1)', border: '1px dashed #00b894' }}>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <p style={{ margin: 0, fontSize: '12px', color: '#00b894' }}>Share this code to COMPLETE job</p>
+                                        <strong style={{ fontSize: '24px', letterSpacing: '5px', color: 'white' }}>{booking.endJobOtp}</strong>
                                     </div>
                                 </div>
                             )}

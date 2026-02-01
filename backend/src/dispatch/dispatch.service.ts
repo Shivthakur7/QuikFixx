@@ -29,7 +29,7 @@ export class DispatchService {
       `Dispatching Order ${order.id} for service ${order.serviceType}`,
     );
 
-    const RADIUS_KM = 3;
+    const RADIUS_KM = 5;
     const candidates = await this.redisService.getNearbyProviders(
       order.locationLat,
       order.locationLng,

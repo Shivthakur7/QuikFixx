@@ -11,76 +11,76 @@ const ProviderDashboardPage: React.FC = () => {
     const { socket } = useSocket();
     const { showToast } = useToast();
     const navigate = useNavigate();
+    const [balance, setBalance] = useState(0);
     const [bookings, setBookings] = useState<any[]>([]);
+    const [otpInputs, setOtpInputs] = useState<{ [key: string]: string }>({});
 
     // Location Tracking Logic
     useEffect(() => {
         if (!socket) return;
         let watchId: number | null = null;
-
-        // Track ALL active accepted/in-progress bookings
         const activeBookings = bookings.filter(b => b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS');
-
         if (activeBookings.length > 0) {
-            console.log('Starting Location Tracking for Bookings:', activeBookings.map(b => b.id));
             if (navigator.geolocation) {
-                watchId = navigator.geolocation.watchPosition(
-                    (pos) => {
-                        const { latitude, longitude } = pos.coords;
-                        // Emit update for EACH active booking
-                        activeBookings.forEach(booking => {
-                            socket.emit('updateLocation', {
-                                bookingId: booking.id,
-                                lat: latitude,
-                                lng: longitude
-                            });
-                        });
-                        console.log('Location sent for bookings:', activeBookings.length, latitude, longitude);
-                    },
-                    (err) => console.error('Location Watch Error:', err),
-                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
-                );
+                watchId = navigator.geolocation.watchPosition((pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    activeBookings.forEach(booking => {
+                        socket.emit('updateLocation', { bookingId: booking.id, lat: latitude, lng: longitude });
+                    });
+                }, (err) => console.error(err), { enableHighAccuracy: true });
             }
         }
-
-        return () => {
-            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-        };
-    }, [socket, bookings]); // Re-run when job list/status changes
+        return () => { if (watchId !== null) navigator.geolocation.clearWatch(watchId); };
+    }, [socket, bookings]);
 
     useEffect(() => {
-        // Fetch existing bookings
-        api.get('/bookings/provider/requests')
-            .then(res => {
-                setBookings(res.data);
-            })
-            .catch(err => console.error('Failed to fetch bookings', err));
+        // Fetch Balance & Bookings
+        api.get('/bookings/provider/requests').then(res => setBookings(res.data)).catch(console.error);
+        api.get('/auth/profile').then(res => {
+            if (res.data && res.data.provider) setBalance(Number(res.data.provider.balance || 0));
+        }).catch(console.error);
 
-        if (!socket) return;
-
-        // Listen for new booking requests
-        socket.on('booking.new', (data: any) => {
-            console.log('New Booking:', data);
-            showToast(`New Job Opportunity: ${data.serviceType}`, 'success');
-            setBookings(prev => [data, ...prev]);
-        });
-
-        return () => {
-            socket.off('booking.new');
-        };
+        if (socket) {
+            socket.on('booking.new', (data: any) => {
+                showToast(`New Job: ${data.serviceType}`, 'success');
+                setBookings(prev => [data, ...prev]);
+            });
+            return () => { socket.off('booking.new'); };
+        }
     }, [socket, showToast]);
 
     const handleStatusUpdate = async (bookingId: string, status: 'ACCEPTED' | 'CANCELLED') => {
         try {
             await api.post(`/bookings/${bookingId}/status`, { status });
-            showToast(`Booking ${status.toLowerCase()} successfully`, 'success');
-            // Update local state to reflect the new status
-            setBookings(prev => prev.map(b =>
-                b.id === bookingId ? { ...b, status } : b
-            ));
+            showToast(`Booking ${status.toLowerCase()}`, 'success');
+            setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status } : b));
         } catch (err) {
-            console.error('Failed to update status', err);
             showToast('Failed to update status', 'error');
+        }
+    };
+
+    const handleOtpChange = (bookingId: string, value: string) => {
+        setOtpInputs(prev => ({ ...prev, [bookingId]: value }));
+    };
+
+    const verifyOtp = async (bookingId: string, type: 'start' | 'end') => {
+        const otp = otpInputs[bookingId];
+        if (!otp) return showToast('Please enter OTP', 'error');
+
+        try {
+            await api.post(`/bookings/${bookingId}/verify-${type}-otp`, { otp });
+            showToast(`${type === 'start' ? 'Job Started' : 'Job Completed'} Successfully`, 'success');
+
+            // Refresh bookings and balance
+            api.get('/bookings/provider/requests').then(res => setBookings(res.data));
+            api.get('/auth/profile').then(res => {
+                if (res.data && res.data.provider) {
+                    setBalance(Number(res.data.provider.balance || 0));
+                }
+            });
+
+        } catch (err: any) {
+            showToast(err.response?.data?.message || 'Invalid OTP', 'error');
         }
     };
 
@@ -116,7 +116,7 @@ const ProviderDashboardPage: React.FC = () => {
                 <div style={{ display: 'flex', gap: '15px', marginTop: '25px' }}>
                     <div className="glass-card" style={{ flex: 1, padding: '15px', background: 'rgba(255,255,255,0.15)', border: 'none' }}>
                         <div style={{ opacity: 0.8, fontSize: '12px', color: 'white' }}>Earnings</div>
-                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>₹0</div>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>₹{balance.toFixed(2)}</div>
                     </div>
                     <div className="glass-card" style={{ flex: 1, padding: '15px', background: 'rgba(255,255,255,0.15)', border: 'none' }}>
                         <div style={{ opacity: 0.8, fontSize: '12px', color: 'white' }}>Jobs</div>
@@ -160,7 +160,7 @@ const ProviderDashboardPage: React.FC = () => {
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '5px' }}>
                                     <MapPin size={14} />
-                                    <span>{booking.locationGeo ? `${booking.locationLat}, ${booking.locationLng}` : 'Location provided'}</span>
+                                    <span>{booking.address || (booking.locationGeo ? `${booking.locationLat}, ${booking.locationLng}` : 'Location provided')}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '5px' }}>
                                     <Calendar size={14} />
@@ -171,16 +171,53 @@ const ProviderDashboardPage: React.FC = () => {
                                     <span>Est. Price: {booking.price || '500'}</span>
                                 </div>
 
-                                <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+                                <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                     {booking.status === 'ACCEPTED' ? (
-                                        <button
-                                            className="btn-primary"
-                                            style={{ flex: 1, fontSize: '14px', padding: '8px', background: '#00cec9', cursor: 'default' }}
-                                        >
-                                            In Progress (Sharing Location)
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter Start OTP"
+                                                className="input-field"
+                                                style={{ flex: 1, padding: '8px' }}
+                                                value={otpInputs[booking.id] || ''}
+                                                onChange={(e) => handleOtpChange(booking.id, e.target.value)}
+                                            />
+                                            <button
+                                                className="btn-primary"
+                                                style={{ fontSize: '14px', padding: '8px 15px', background: '#00cec9' }}
+                                                onClick={() => verifyOtp(booking.id, 'start')}
+                                            >
+                                                Start Job
+                                            </button>
+                                        </div>
+                                    ) : booking.status === 'IN_PROGRESS' ? (
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter End OTP"
+                                                className="input-field"
+                                                style={{ flex: 1, padding: '8px' }}
+                                                value={otpInputs[booking.id] || ''}
+                                                onChange={(e) => handleOtpChange(booking.id, e.target.value)}
+                                            />
+                                            <button
+                                                className="btn-primary"
+                                                style={{ fontSize: '14px', padding: '8px 15px', background: '#e17055' }}
+                                                onClick={() => verifyOtp(booking.id, 'end')}
+                                            >
+                                                Complete
+                                            </button>
+                                        </div>
+                                    ) : booking.status === 'COMPLETED' ? (
+                                        <div style={{ padding: '10px', background: 'rgba(0, 184, 148, 0.2)', color: '#00cec9', textAlign: 'center', borderRadius: '8px' }}>
+                                            Job Completed
+                                        </div>
+                                    ) : booking.status === 'CANCELLED' ? (
+                                        <div style={{ padding: '10px', background: 'rgba(255, 107, 107, 0.2)', color: '#ff6b6b', textAlign: 'center', borderRadius: '8px' }}>
+                                            Cancelled
+                                        </div>
                                     ) : (
-                                        <>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
                                             <button
                                                 className="btn-primary"
                                                 style={{ flex: 1, fontSize: '14px', padding: '8px' }}
@@ -197,7 +234,7 @@ const ProviderDashboardPage: React.FC = () => {
                                             >
                                                 Decline
                                             </button>
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -231,5 +268,4 @@ const ProviderDashboardPage: React.FC = () => {
         </div>
     );
 };
-
 export default ProviderDashboardPage;

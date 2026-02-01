@@ -99,7 +99,7 @@ const ProviderPublicProfileModal: React.FC<ProviderPublicProfileModalProps> = ({
                         <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <MapPin size={16} color="#a0a0b0" />
                         </div>
-                        <span>Available in Gwalior Area</span>
+                        <span>Available in Your Area</span>
                     </div>
 
                     {/* Actions */}

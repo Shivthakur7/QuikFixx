@@ -4,7 +4,7 @@ import Redis from 'ioredis';
 
 @Injectable()
 export class RedisService {
-  constructor(@InjectRedis() private readonly redis: Redis) {}
+  constructor(@InjectRedis() private readonly redis: Redis) { }
 
   /**
    * Updates a provider's geospatial location.
@@ -87,5 +87,22 @@ export class RedisService {
   async getProviderStatus(providerId: string): Promise<string> {
     const status = await this.redis.get(`provider:${providerId}:status`);
     return status || 'OFFLINE';
+  }
+
+  // Generic helpers
+  async set(key: string, value: string, ttlSeconds?: number) {
+    if (ttlSeconds) {
+      await this.redis.set(key, value, 'EX', ttlSeconds);
+    } else {
+      await this.redis.set(key, value);
+    }
+  }
+
+  async get(key: string): Promise<string | null> {
+    return this.redis.get(key);
+  }
+
+  async del(key: string) {
+    return this.redis.del(key);
   }
 }

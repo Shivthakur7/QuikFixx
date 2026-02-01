@@ -30,12 +30,13 @@ const HomePage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Auto-select from Landing Page or URL
+    // Auto-select from Landing Page or URL and Auto-Detect Location
     useEffect(() => {
-        if (location.pathname === '/map') {
-            setViewMode('map');
-        } else if (location.state && location.state.service) {
-            handleServiceSelect(location.state.service);
+        if (location.state && location.state.service) {
+            handleServiceSelect(location.state.service); // This triggers map view
+        } else {
+            // If just landing on dashboard, try to detect location
+            detectLocation();
         }
     }, [location]);
 
@@ -54,9 +55,23 @@ const HomePage: React.FC = () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    setPosition([pos.coords.latitude, pos.coords.longitude]);
-                    setAddressText("Current Location Detected");
-                    showToast("Location detected successfully", "success");
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    setPosition([lat, lng]);
+
+                    // Reverse Geocode
+                    setAddressText("Fetching address...");
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            setAddressText(data.display_name);
+                            showToast("Location detected successfully", "success");
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            setAddressText(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                            showToast("Address fetch failed, using coordinates", "info");
+                        });
                 },
                 (err) => {
                     console.error(err);
@@ -127,11 +142,13 @@ const HomePage: React.FC = () => {
             await api.post('/bookings', {
                 serviceType: provider.serviceType || 'general', // You might need to track selectedServiceId better
                 location: { lat: position[0], lng: position[1] },
+                address: addressText, // Send selected address
                 providerId: provider.providerEntityId, // Use the actual Provider ID
                 items: bookingDetails.items,
                 price: bookingDetails.price
             });
             showToast('Booking request sent to ' + (provider.name || 'provider'), 'success');
+            navigate('/account');
             setProviders([]);
             setViewMode('dashboard');
             setBookingDetails({ items: [], price: 0 });
@@ -155,102 +172,112 @@ const HomePage: React.FC = () => {
 
             {/* --- DASHBOARD VIEW --- */}
             {viewMode === 'dashboard' && (
-                <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '80px', background: 'var(--color-bg-primary)' }}>
-                    {/* Header & Location */}
-                    <div style={{
-                        padding: '20px',
-                        background: 'linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), url("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Gwalior_Fort_View.jpg/1200px-Gwalior_Fort_View.jpg")',
-                        backgroundSize: 'cover',
-                        borderBottomLeftRadius: '24px',
-                        borderBottomRightRadius: '24px',
-                        marginBottom: '20px'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <div>
-                                <h2 style={{ margin: 0 }}>Hello, {user?.fullName?.split(' ')[0] || 'User'} 👋</h2>
-                                <p style={{ margin: 0, opacity: 0.8, fontSize: '14px' }}>What needs fixing today?</p>
-                            </div>
-                            <div onClick={() => navigate('/account')} style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                <User size={20} />
-                            </div>
+                <div className="landing-container">
+                    {/* Hero Section */}
+                    <div className="hero-section">
+                        <div className="hero-visual blobs">
+                            <div className="blob blob-1"></div>
+                            <div className="blob blob-2"></div>
                         </div>
 
-                        {/* Location Search Bar */}
-                        <div style={{ position: 'relative' }}>
-                            <div className="glass-card" style={{ display: 'flex', alignItems: 'center', padding: '10px 15px' }}>
-                                <MapPin size={18} color="var(--color-accent)" style={{ marginRight: '10px' }} />
-                                <input
-                                    type="text"
-                                    placeholder="Your Location (Gwalior)"
-                                    value={addressText}
-                                    onChange={(e) => {
-                                        setAddressText(e.target.value);
-                                        if (e.target.value.length > 2) {
-                                            // Bias search to Gwalior
-                                            const query = e.target.value.toLowerCase().includes('gwalior')
-                                                ? e.target.value
-                                                : `${e.target.value}, Gwalior`;
-
-                                            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`)
-                                                .then(res => res.json())
-                                                .then(data => setSuggestions(data))
-                                                .catch(err => console.error(err));
-                                        } else {
-                                            setSuggestions([]);
-                                        }
-                                    }}
-                                    style={{ background: 'transparent', border: 'none', color: 'white', flex: 1, outline: 'none' }}
-                                />
-                                <Crosshair size={18} style={{ cursor: 'pointer', opacity: 0.7 }} onClick={detectLocation} />
+                        <div className="hero-content">
+                            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', width: '100%', position: 'absolute', top: '20px', left: 0, padding: '0 20px', boxSizing: 'border-box' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}>
+                                        <span style={{ fontSize: '20px' }}>⚡</span>
+                                    </div>
+                                </div>
+                                <div onClick={() => navigate('/account')} style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(5px)' }}>
+                                    <User size={20} color="white" />
+                                </div>
                             </div>
 
-                            {/* Suggestions Dropdown */}
-                            {suggestions.length > 0 && (
-                                <div className="glass-card" style={{
-                                    position: 'absolute', top: '100%', left: 0, right: 0,
-                                    zIndex: 2000, marginTop: '5px', borderRadius: '12px',
-                                    maxHeight: '200px', overflowY: 'auto', background: 'var(--color-bg-secondary)'
-                                }}>
-                                    {suggestions.map((s: any, i) => (
-                                        <div
-                                            key={i}
-                                            onClick={() => {
-                                                setAddressText(s.display_name);
-                                                setPosition([parseFloat(s.lat), parseFloat(s.lon)]);
+                            <h1 className="hero-title">
+                                Fix it <span className="text-gradient">Fast.</span>
+                            </h1>
+                            <p className="hero-subtitle">
+                                Hello, {user?.fullName?.split(' ')[0] || 'User'}! <br />
+                                Expert services at your doorstep.
+                            </p>
+
+                            {/* Search Bar - Floating */}
+                            <div style={{ position: 'relative', maxWidth: '500px', margin: '0 auto', width: '100%' }}>
+                                <div className="glass-card" style={{ display: 'flex', alignItems: 'center', padding: '15px 20px', borderRadius: '50px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                                    <MapPin size={20} color="#00cec9" style={{ marginRight: '15px' }} />
+                                    <input
+                                        type="text"
+                                        placeholder="Set your location..."
+                                        value={addressText}
+                                        onChange={(e) => {
+                                            setAddressText(e.target.value);
+                                            if (e.target.value.length > 2) {
+                                                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${e.target.value}&limit=5&addressdetails=1&countrycodes=in`)
+                                                    .then(res => res.json())
+                                                    .then(data => {
+                                                        console.log('Suggestions:', data);
+                                                        setSuggestions(data);
+                                                    })
+                                                    .catch(err => console.error(err));
+                                            } else {
                                                 setSuggestions([]);
-                                            }}
-                                            style={{
-                                                padding: '10px 15px',
-                                                borderBottom: '1px solid rgba(255,255,255,0.05)',
-                                                cursor: 'pointer', fontSize: '12px'
-                                            }}
-                                        >
-                                            {s.display_name}
-                                        </div>
-                                    ))}
+                                            }
+                                        }}
+                                        style={{ background: 'transparent', border: 'none', color: 'white', flex: 1, outline: 'none', fontSize: '16px' }}
+                                    />
+                                    <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)', margin: '0 15px' }}></div>
+                                    <Crosshair size={20} style={{ cursor: 'pointer', color: '#a0a0b0' }} onClick={detectLocation} />
                                 </div>
-                            )}
+
+                                {/* Suggestions Dropdown */}
+                                {suggestions.length > 0 && (
+                                    <div className="glass-card" style={{
+                                        position: 'absolute', top: '120%', left: 0, right: 0,
+                                        zIndex: 2000, borderRadius: '16px',
+                                        maxHeight: '250px', overflowY: 'auto', background: '#13131f'
+                                    }}>
+                                        {suggestions.map((s: any, i) => (
+                                            <div
+                                                key={i}
+                                                onClick={() => {
+                                                    setAddressText(s.display_name);
+                                                    setPosition([parseFloat(s.lat), parseFloat(s.lon)]);
+                                                    setSuggestions([]);
+                                                }}
+                                                style={{
+                                                    padding: '12px 20px',
+                                                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                    cursor: 'pointer', fontSize: '14px', color: '#dfe6e9'
+                                                }}
+                                            >
+                                                {s.display_name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Services Grid */}
-                    <div style={{ padding: '0 20px' }}>
-                        <h3 style={{ marginBottom: '15px' }}>Our Services</h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    {/* Services Section */}
+                    <div className="services-section">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: '20px' }}>
+                            <h3 className="section-title" style={{ textAlign: 'left', margin: 0, fontSize: '1.5rem' }}>Categories</h3>
+                            <span style={{ color: 'var(--color-accent)', fontSize: '14px', cursor: 'pointer' }}>See all</span>
+                        </div>
+
+                        <div className="services-grid">
                             {servicesList.map(s => (
                                 <div
                                     key={s.id}
-                                    className="glass-card"
+                                    className="service-card"
                                     onClick={() => handleServiceSelect(s.id)}
-                                    style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px', cursor: 'pointer' }}
                                 >
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(108, 92, 231, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a29bfe' }}>
-                                        <Briefcase size={20} />
+                                    <div className="icon-wrapper" style={{ background: 'rgba(108, 92, 231, 0.1)' }}>
+                                        {/* Dynamic Icon Mapping could go here, for now using Briefcase generically/colored */}
+                                        <Briefcase size={24} color="#6c5ce7" />
                                     </div>
-                                    <div>
-                                        <h4 style={{ margin: '0 0 5px 0', fontSize: '16px' }}>{s.name}</h4>
-                                        <p style={{ margin: 0, fontSize: '12px', color: '#a0a0b0', lineHeight: '1.4' }}>{s.desc}</p>
-                                    </div>
+                                    <h4 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>{s.name}</h4>
+                                    <p style={{ margin: 0, fontSize: '12px', color: '#a0a0b0', lineHeight: '1.4' }}>{s.desc}</p>
                                 </div>
                             ))}
                         </div>

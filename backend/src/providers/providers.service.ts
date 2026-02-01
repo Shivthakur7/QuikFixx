@@ -25,7 +25,7 @@ export class ProvidersService {
     return this.providersRepository.save(provider);
   }
 
-  async updateLocation(userId: string, lat: number, lng: number) {
+  async updateLocation(userId: string, lat: number, lng: number, address?: string) {
     const provider = await this.providersRepository.findOne({
       where: { userId },
     });
@@ -37,6 +37,9 @@ export class ProvidersService {
       type: 'Point',
       coordinates: [lng, lat], // GeoJSON is [lng, lat]
     };
+    if (address) {
+      provider.address = address;
+    }
     await this.providersRepository.save(provider);
 
     // 2. Update Redis (Real-time)
@@ -68,6 +71,16 @@ export class ProvidersService {
     await this.redisService.setProviderStatus(userId, isOnline);
 
     return { status: isOnline ? 'ONLINE' : 'OFFLINE' };
+  }
+
+  async submitVerification(userId: string, filename: string) {
+    const provider = await this.providersRepository.findOne({ where: { userId } });
+    if (!provider) throw new NotFoundException('Provider not found');
+
+    provider.aadhaarCardUrl = `/uploads/${filename}`;
+    provider.verificationStatus = 'PENDING';
+
+    return this.providersRepository.save(provider);
   }
 
   async getProviderById(id: string) {
@@ -136,6 +149,14 @@ export class ProvidersService {
       where: { userId },
       relations: ['user'],
     });
+  }
+
+  async findById(id: string): Promise<Provider | null> {
+    return this.providersRepository.findOne({ where: { id } });
+  }
+
+  async updateBalance(providerId: string, newBalance: number) {
+    await this.providersRepository.update(providerId, { balance: newBalance });
   }
 
   async updateRating(providerId: string) {

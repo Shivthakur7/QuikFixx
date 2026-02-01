@@ -29,6 +29,12 @@ export class Provider {
   @Column({ default: false })
   isVerified: boolean;
 
+  @Column({ type: 'text', default: 'NONE' }) // NONE, PENDING, APPROVED, REJECTED
+  verificationStatus: string;
+
+  @Column({ type: 'text', nullable: true })
+  aadhaarCardUrl: string;
+
   @Index({ spatial: true })
   @Column({
     type: 'geometry',
@@ -38,11 +44,17 @@ export class Provider {
   })
   currentLocation: Point;
 
+  @Column({ nullable: true })
+  address: string;
+
   @Column('text', { array: true, default: [] })
   skillTags: string[];
 
   @Column('decimal', { precision: 3, scale: 2, default: 5.0 })
   rating: number;
+
+  @Column('decimal', { precision: 12, scale: 2, default: 0.00 })
+  balance: number;
 
   @CreateDateColumn()
   createdAt: Date;

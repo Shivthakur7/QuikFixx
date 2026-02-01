@@ -26,6 +26,13 @@ export class UsersService {
     });
   }
 
+  async findOneByPhone(phoneNumber: string): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { phoneNumber },
+      relations: ['provider'],
+    });
+  }
+
   async findOneById(id: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { id },
