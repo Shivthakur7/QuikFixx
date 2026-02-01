@@ -181,7 +181,7 @@ const HomePage: React.FC = () => {
                         </div>
 
                         <div className="hero-content">
-                            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', width: '100%', position: 'absolute', top: '20px', left: 0, padding: '0 20px', boxSizing: 'border-box' }}>
+                            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', width: '100%', position: 'absolute', top: 'calc(20px + env(safe-area-inset-top))', left: 0, padding: '0 20px', boxSizing: 'border-box' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' }}>
                                         <span style={{ fontSize: '20px' }}>⚡</span>
@@ -370,7 +370,9 @@ const HomePage: React.FC = () => {
                 <div style={{
                     position: 'fixed', bottom: 0, left: 0, right: 0,
                     background: '#13131f', borderTop: '1px solid rgba(255,255,255,0.1)',
-                    display: 'flex', justifyContent: 'space-around', padding: '15px'
+                    display: 'flex', justifyContent: 'space-around',
+                    padding: '15px 15px calc(15px + env(safe-area-inset-bottom)) 15px',
+                    zIndex: 1000
                 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'var(--color-accent)', cursor: 'pointer' }}>
                         <Briefcase size={20} />

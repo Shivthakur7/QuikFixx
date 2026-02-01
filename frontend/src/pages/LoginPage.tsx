@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail, Phone, Moon, Smartphone } from 'lucide-react';
+import { Lock, Mail, Smartphone } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 const LoginPage: React.FC = () => {

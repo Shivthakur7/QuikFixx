@@ -29,7 +29,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ currentUser, onClos
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            const res = await api.patch('/users/profile', formData);
+            await api.patch('/users/profile', formData);
             showToast('Profile updated successfully', 'success');
 
             // Attempt to update local auth context if the response returns the updated user

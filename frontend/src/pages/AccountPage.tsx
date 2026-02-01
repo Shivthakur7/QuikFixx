@@ -26,7 +26,7 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 const AccountPage: React.FC = () => {
-    const { user, logout, login } = useAuth();
+    const { user, logout } = useAuth();
     const { socket } = useSocket();
     const navigate = useNavigate();
     const { showToast } = useToast();

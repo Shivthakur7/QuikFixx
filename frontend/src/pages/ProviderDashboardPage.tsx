@@ -88,7 +88,7 @@ const ProviderDashboardPage: React.FC = () => {
         <div className="app-container" style={{ paddingBottom: '80px', background: 'var(--color-bg-primary)' }}>
             {/* Header */}
             <div style={{
-                padding: '30px 20px',
+                padding: 'calc(30px + env(safe-area-inset-top)) 20px 30px 20px',
                 background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)',
                 borderBottomLeftRadius: '30px',
                 borderBottomRightRadius: '30px',
@@ -247,7 +247,9 @@ const ProviderDashboardPage: React.FC = () => {
             <div style={{
                 position: 'fixed', bottom: 0, left: 0, right: 0,
                 background: '#13131f', borderTop: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex', justifyContent: 'space-around', padding: '15px'
+                display: 'flex', justifyContent: 'space-around',
+                padding: '15px 15px calc(15px + env(safe-area-inset-bottom)) 15px',
+                zIndex: 1000
             }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'var(--color-accent)', cursor: 'pointer' }}>
                     <Briefcase size={20} />
