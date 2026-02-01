@@ -88,6 +88,48 @@ body {
   flex-direction: column;
 }
 
+/* Navbar Responsive Styles */
+.navbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.nav-brand-text {
+  font-size: 24px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 20px;
+}
+
+@media (max-width: 380px) {
+  .nav-brand-text span {
+    display: none;
+  }
+
+  .nav-actions {
+    gap: 10px;
+  }
+
+  .navbar .btn-primary,
+  .navbar .btn-secondary {
+    padding: 8px 12px !important;
+    font-size: 0.9rem;
+  }
+}
+
 /* --- Landing Page Styles --- */
 .landing-container {
   min-height: 100vh;
@@ -121,10 +163,11 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-success));
+  background: linear-gradient(135deg, #a29bfe, #81ecec);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 10px rgba(108, 92, 231, 0.3));
 }
 
 .hero-subtitle {

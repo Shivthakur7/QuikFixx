@@ -99,28 +99,36 @@ const AccountPage: React.FC = () => {
                     <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', fontWeight: 'bold' }}>
                         {user.fullName ? user.fullName[0] : user.email[0].toUpperCase()}
                     </div>
-                    <h2 style={{ margin: 0 }}>{user.fullName || 'User'}</h2>
-                    <p style={{ color: '#a0a0b0', margin: '5px 0' }}>{user.email}</p>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        <h2 style={{ margin: 0, fontSize: '1.5rem', wordBreak: 'break-word' }}>{user.fullName || 'User'}</h2>
+                        <p style={{ color: '#a0a0b0', margin: 0, fontSize: '0.9rem', wordBreak: 'break-all' }}>{user.email}</p>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
-                        <MapPin size={16} color="#a0a0b0" />
-                        <span style={{ color: '#dfe6e9', fontSize: '14px' }}>
-                            {user.address || 'Location not set'}
-                        </span>
-                    </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '5px' }}>
+                            <MapPin size={14} color="#a0a0b0" style={{ minWidth: '14px' }} />
+                            <span style={{ color: '#dfe6e9', fontSize: '13px' }}>
+                                {user.address || 'Location not set'}
+                            </span>
+                        </div>
 
-                    <button
-                        onClick={() => setIsEditingAddress(true)}
-                        className="btn-primary"
-                        style={{ marginTop: '15px', fontSize: '12px', padding: '6px 12px' }}
-                    >
-                        Edit Profile
-                    </button>
-
-                    <div style={{ marginTop: '10px' }}>
-                        <button onClick={() => { logout(); navigate('/'); }} style={{ background: 'transparent', border: '1px solid #ff7675', color: '#ff7675', padding: '5px 15px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>
-                            Logout
-                        </button>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                            <button
+                                onClick={() => setIsEditingAddress(true)}
+                                className="btn-primary"
+                                style={{ fontSize: '12px', padding: '8px 16px', flex: 1, maxWidth: '120px', textAlign: 'center' }}
+                            >
+                                Edit Profile
+                            </button>
+                            <button
+                                onClick={() => { logout(); navigate('/'); }}
+                                style={{
+                                    background: 'transparent', border: '1px solid #ff7675', color: '#ff7675',
+                                    padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '12px',
+                                    flex: 1, maxWidth: '100px', textAlign: 'center'
+                                }}
+                            >
+                                Logout
+                            </button>
+                        </div>
                     </div>
 
                 </div>

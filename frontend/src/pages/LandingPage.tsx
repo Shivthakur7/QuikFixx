@@ -25,15 +25,13 @@ const LandingPage: React.FC = () => {
     return (
         <div className="landing-container" style={{ background: 'var(--color-bg-primary)' }}>
             {/* Navbar */}
-            <nav style={{
-                position: 'absolute', top: 0, left: 0, right: 0, padding: '20px 40px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10
-            }}>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Navbar */}
+            <nav className="navbar">
+                <div className="nav-brand-text">
                     <div style={{ width: '30px', height: '30px', background: 'var(--color-accent)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⚡</div>
                     <span>QuikFixx</span>
                 </div>
-                <div style={{ display: 'flex', gap: '20px' }}>
+                <div className="nav-actions">
                     <button className="btn-secondary" onClick={() => navigate('/login')} style={{ border: 'none' }}>Login</button>
                     <button className="btn-primary" onClick={() => navigate('/register')} style={{ padding: '8px 20px' }}>Get Started</button>
                 </div>
