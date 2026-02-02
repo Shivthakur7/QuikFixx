@@ -36,7 +36,7 @@ export class AuthService {
     const payload = { email: user.email, sub: user.id, role };
     return {
       access_token: this.jwtService.sign(payload),
-      user: user,
+      user: { ...user, role }, // Include role in user object for mobile app
     };
   }
 
