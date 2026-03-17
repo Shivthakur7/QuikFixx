@@ -18,19 +18,21 @@ const RateProviderModal: React.FC<RateProviderModalProps> = ({ visible, booking,
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async () => {
-        if (!booking?.provider?.id) {
-            showToast('Provider information missing', 'error');
+        if (!booking?.id) {
+            showToast('Booking information missing', 'error');
             return;
         }
 
         setLoading(true);
         try {
             await client.post('/reviews', {
-                providerId: booking.provider.id,
+                orderId: booking.id,   // backend expects orderId, not providerId
                 rating,
                 comment: comment.trim() || undefined
             });
             showToast('Thank you for your review!', 'success');
+            setRating(5);
+            setComment('');
             onSuccess();
             onClose();
         } catch (err: any) {

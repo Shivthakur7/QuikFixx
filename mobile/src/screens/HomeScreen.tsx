@@ -10,6 +10,7 @@ const HomeScreen = ({ navigation }: any) => {
     const { user } = useAuth();
     const [locationText, setLocationText] = useState('Detecting location...');
     const [hasLocation, setHasLocation] = useState(false);
+    const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
     useEffect(() => {
         requestLocationPermission();
@@ -34,6 +35,9 @@ const HomeScreen = ({ navigation }: any) => {
 
             setLocationText('Getting location...');
             const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+
+            // Cache coordinates so ProviderListScreen doesn't need to re-fetch
+            setUserCoords({ lat: location.coords.latitude, lng: location.coords.longitude });
 
             // Reverse geocode to get address
             try {
@@ -63,7 +67,7 @@ const HomeScreen = ({ navigation }: any) => {
     const renderServiceItem = ({ item }: any) => (
         <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('SubServiceSelection', { serviceId: item.id })}
+            onPress={() => navigation.navigate('SubServiceSelection', { serviceId: item.id, userCoords })}
         >
             <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
                 <item.icon size={28} color={item.color} />

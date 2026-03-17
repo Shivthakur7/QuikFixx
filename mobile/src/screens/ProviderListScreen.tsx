@@ -7,7 +7,7 @@ import * as Location from 'expo-location';
 import { useToast } from '../context/ToastContext';
 
 const ProviderListScreen = ({ route, navigation }: any) => {
-    const { serviceId, subServiceId, subServiceName, subServicePrice } = route.params;
+    const { serviceId, subServiceId, subServiceName, subServicePrice, userCoords: passedCoords } = route.params;
     const { showToast } = useToast();
     const [providers, setProviders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -21,23 +21,31 @@ const ProviderListScreen = ({ route, navigation }: any) => {
     const searchProviders = async () => {
         setLoading(true);
         try {
-            // Get Location
-            let location;
-            try {
-                const { status } = await Location.requestForegroundPermissionsAsync();
-                if (status === 'granted') {
-                    location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                    setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude });
+            // Use coordinates passed from HomeScreen (already fetched) to avoid slow re-fetch
+            let coords = passedCoords;
+
+            if (!coords) {
+                // Fallback: fetch location if not passed (e.g. refresh button after cold start)
+                try {
+                    const { status } = await Location.requestForegroundPermissionsAsync();
+                    if (status === 'granted') {
+                        const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                        coords = { lat: location.coords.latitude, lng: location.coords.longitude };
+                    }
+                } catch (locErr) {
+                    console.log('Location error:', locErr);
                 }
-            } catch (locErr) {
-                console.log('Location error:', locErr);
+            }
+
+            if (coords) {
+                setUserLocation(coords);
             }
 
             // Search providers using POST /providers/search (matching web app)
             const searchPayload = {
                 serviceType: serviceId,
-                lat: location?.coords.latitude || 26.2183, // Default to Gwalior if no location
-                lng: location?.coords.longitude || 78.1828
+                lat: coords?.lat || 26.2183, // Default to Gwalior if no location
+                lng: coords?.lng || 78.1828
             };
 
             console.log('Searching providers with:', searchPayload);
@@ -81,7 +89,7 @@ const ProviderListScreen = ({ route, navigation }: any) => {
 
             const payload = {
                 serviceType: serviceLabel,
-                providerId: provider.id,
+                providerId: provider.providerEntityId,  // providerEntityId is the actual Provider table ID returned by /providers/search
                 location: userLocation,
                 price: subServicePrice || 500
             };
@@ -89,7 +97,7 @@ const ProviderListScreen = ({ route, navigation }: any) => {
             console.log('Booking payload:', payload);
             await client.post('/bookings', payload);
 
-            showToast(`Booking request sent to ${provider.user?.fullName || provider.fullName}!`, 'success');
+            showToast(`Booking request sent to ${provider.name || 'provider'}!`, 'success');
             navigation.navigate('Home');
         } catch (err: any) {
             console.error("Booking Error", err);
@@ -100,9 +108,9 @@ const ProviderListScreen = ({ route, navigation }: any) => {
     };
 
     const renderProvider = ({ item }: any) => {
-        const providerName = item.user?.fullName || item.fullName || 'Provider';
-        const rating = item.rating || 4.5;
-        const reviewCount = item.reviewCount || 0;
+        const providerName = item.name || 'Provider';
+        const rating = parseFloat(item.rating) || 4.5;  // rating comes as string "4.00" from backend
+        const reviewCount = item.stats?.reviewCount || item.reviewCount || 0;
         const distance = item.distance ? `${item.distance.toFixed(1)} km away` : 'Distance unknown';
 
         return (
@@ -167,7 +175,7 @@ const ProviderListScreen = ({ route, navigation }: any) => {
                 <FlatList
                     data={providers}
                     renderItem={renderProvider}
-                    keyExtractor={item => item.id}
+                    keyExtractor={item => item.providerEntityId}
                     contentContainerStyle={styles.list}
                     ListEmptyComponent={
                         <View style={styles.center}>

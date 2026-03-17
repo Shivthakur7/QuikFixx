@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order, OrderStatus } from '../entities/order.entity';
+import { Review } from '../entities/review.entity';
 import { DispatchService } from '../dispatch/dispatch.service';
-
 import { ProvidersService } from '../providers/providers.service';
 
 @Injectable()
@@ -11,6 +11,8 @@ export class BookingsService {
   constructor(
     @InjectRepository(Order)
     private ordersRepository: Repository<Order>,
+    @InjectRepository(Review)
+    private reviewsRepository: Repository<Review>,
     private dispatchService: DispatchService,
     private providersService: ProvidersService,
   ) { }
@@ -83,11 +85,21 @@ export class BookingsService {
   }
 
   async findMyBookings(userId: string) {
-    return this.ordersRepository.find({
+    const orders = await this.ordersRepository.find({
       where: { customerId: userId },
       order: { createdAt: 'DESC' },
       relations: ['provider', 'provider.user'],
     });
+
+    // Stamp each order with hasReview so frontend can hide/show the Rate button
+    const ordersWithReview = await Promise.all(
+      orders.map(async (order) => {
+        const review = await this.reviewsRepository.findOne({ where: { orderId: order.id } });
+        return { ...order, hasReview: !!review };
+      })
+    );
+
+    return ordersWithReview;
   }
 
   async findProviderBookings(userId: string) {

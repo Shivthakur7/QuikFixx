@@ -5,7 +5,7 @@ import { ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import { SERVICES_LIST } from '../constants/services';
 
 const SubServiceSelectionScreen = ({ route, navigation }: any) => {
-    const { serviceId } = route.params;
+    const { serviceId, userCoords } = route.params;
     const service = SERVICES_LIST.find(s => s.id === serviceId);
 
     if (!service) return null;
@@ -13,7 +13,7 @@ const SubServiceSelectionScreen = ({ route, navigation }: any) => {
     const renderSubService = ({ item }: any) => (
         <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('ProviderList', { serviceId, subServiceId: item.id })}
+            onPress={() => navigation.navigate('ProviderList', { serviceId, subServiceId: item.id, subServiceName: item.name, subServicePrice: item.price, userCoords })}
         >
             <View>
                 <Text style={styles.cardTitle}>{item.name}</Text>

@@ -1,9 +1,9 @@
-import { Briefcase, Wrench, Zap, Droplet, Paintbrush, Truck, Home } from 'lucide-react-native';
+import { Droplet, Zap, Wrench, Paintbrush, Briefcase, Truck } from 'lucide-react-native';
 
 export const SERVICES_LIST = [
     {
-        id: 'plumbing',
-        name: 'Plumbing',
+        id: 'plumber',
+        name: 'Plumber',
         desc: 'Leak repairs, pipe fitting, and installation.',
         icon: Droplet,
         color: '#0984e3',
@@ -15,8 +15,8 @@ export const SERVICES_LIST = [
         ]
     },
     {
-        id: 'electrical',
-        name: 'Electrical',
+        id: 'electrician',
+        name: 'Electrician',
         desc: 'Wiring, switch replacements, and troubleshooting.',
         icon: Zap,
         color: '#f1c40f',
@@ -28,21 +28,8 @@ export const SERVICES_LIST = [
         ]
     },
     {
-        id: 'cleaning',
-        name: 'Home Cleaning',
-        desc: 'Deep cleaning for homes and offices.',
-        icon: Home,
-        color: '#00b894',
-        subServices: [
-            { id: 'kitchen', name: 'Kitchen Deep Clean', price: 1200 },
-            { id: 'bathroom', name: 'Bathroom Cleaning', price: 800 },
-            { id: 'full', name: 'Full Home Clean', price: 3000 },
-            { id: 'sofa', name: 'Sofa Shampooing', price: 900 }
-        ]
-    },
-    {
-        id: 'carpentry',
-        name: 'Carpentry',
+        id: 'carpenter',
+        name: 'Carpenter',
         desc: 'Furniture repair, assembly, and custom work.',
         icon: Wrench,
         color: '#e67e22',
@@ -54,8 +41,8 @@ export const SERVICES_LIST = [
         ]
     },
     {
-        id: 'painting',
-        name: 'Painting',
+        id: 'painter',
+        name: 'Painter',
         desc: 'Interior and exterior wall painting.',
         icon: Paintbrush,
         color: '#e84393',
@@ -63,20 +50,79 @@ export const SERVICES_LIST = [
             { id: 'touchup', name: 'Touch Up', price: 1000 },
             { id: 'room', name: 'Single Room', price: 4000 },
             { id: 'full', name: 'Full Apartment', price: 15000 },
-            { id: 'texture', name: 'Texture Painting', price: '25/sqft' }
+            { id: 'texture', name: 'Texture Painting', price: 2500 }
         ]
     },
     {
-        id: 'moving',
-        name: 'Packers & Movers',
-        desc: 'Safe and secure relocation services.',
-        icon: Truck,
-        color: '#636e72',
+        id: 'mason',
+        name: 'Mason',
+        desc: 'Brickwork, plastering, and structural repairs.',
+        icon: Briefcase,
+        color: '#7f8c8d',
         subServices: [
-            { id: 'local', name: 'Local Shifting', price: 5000 },
-            { id: 'intercity', name: 'Inter-city Move', price: 15000 },
-            { id: 'vehicle', name: 'Vehicle Transport', price: 8000 },
-            { id: 'packing', name: 'Packing Only', price: 2000 }
+            { id: 'brickwork', name: 'Brickwork', price: 1000 },
+            { id: 'plastering', name: 'Plastering', price: 800 },
+            { id: 'tiling', name: 'Tiling', price: 1200 }
+        ]
+    },
+    {
+        id: 'gardener',
+        name: 'Gardener',
+        desc: 'Lawn care, planting, and garden maintenance.',
+        icon: Briefcase,
+        color: '#27ae60',
+        subServices: [
+            { id: 'lawn', name: 'Lawn Mowing', price: 400 },
+            { id: 'planting', name: 'Planting', price: 600 },
+            { id: 'trimming', name: 'Hedge Trimming', price: 700 }
+        ]
+    },
+    {
+        id: 'cook',
+        name: 'Cook',
+        desc: 'Daily meal preparation and catering services.',
+        icon: Briefcase,
+        color: '#e74c3c',
+        subServices: [
+            { id: 'daily', name: 'Daily Meals', price: 2000 },
+            { id: 'party', name: 'Party Catering', price: 5000 },
+            { id: 'special', name: 'Special Diet', price: 2500 }
+        ]
+    },
+    {
+        id: 'maid',
+        name: 'Maid',
+        desc: 'Housekeeping, cleaning, and domestic help.',
+        icon: Briefcase,
+        color: '#9b59b6',
+        subServices: [
+            { id: 'housekeeping', name: 'Housekeeping', price: 1500 },
+            { id: 'deepclean', name: 'Deep Cleaning', price: 3000 },
+            { id: 'laundry', name: 'Laundry & Ironing', price: 800 }
+        ]
+    },
+    {
+        id: 'tutor',
+        name: 'Home Tutor',
+        desc: 'Academic support and skill development.',
+        icon: Briefcase,
+        color: '#3498db',
+        subServices: [
+            { id: 'math', name: 'Math Tutor', price: 700 },
+            { id: 'science', name: 'Science Tutor', price: 800 },
+            { id: 'language', name: 'Language Tutor', price: 900 }
+        ]
+    },
+    {
+        id: 'mechanic',
+        name: 'Mechanic',
+        desc: 'Vehicle repair and maintenance services.',
+        icon: Truck,
+        color: '#f39c12',
+        subServices: [
+            { id: 'oilchange', name: 'Oil Change', price: 1000 },
+            { id: 'tire', name: 'Tire Rotation', price: 500 },
+            { id: 'brake', name: 'Brake Service', price: 1500 }
         ]
     }
 ];
