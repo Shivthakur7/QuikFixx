@@ -267,6 +267,17 @@ const ProviderProfilePage: React.FC = () => {
                     <span style={{ flex: 1 }}>Account Settings</span>
                 </div>
 
+                {activeUser?.isAdmin && (
+                    <div
+                        onClick={() => navigate('/admin/dashboard')}
+                        className="glass-card"
+                        style={{ display: 'flex', alignItems: 'center', padding: '15px', marginBottom: '15px', cursor: 'pointer', border: '1px solid rgba(0, 206, 201, 0.3)', background: 'rgba(0, 206, 201, 0.05)' }}
+                    >
+                        <ShieldAlert size={20} style={{ marginRight: '15px', color: '#00cec9' }} />
+                        <span style={{ flex: 1, color: '#00cec9', fontWeight: 'bold' }}>Admin Dashboard</span>
+                    </div>
+                )}
+
                 {/* Verification Card */}
                 <div className="glass-card" style={{ marginBottom: '15px', padding: '15px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>

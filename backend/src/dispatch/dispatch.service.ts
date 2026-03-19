@@ -70,12 +70,7 @@ export class DispatchService {
 
     // Broadcast
     for (const candidate of validCandidates) {
-      this.eventsGateway.notifyUser(candidate.providerId, 'booking.new', {
-        orderId: order.id,
-        serviceType: order.serviceType,
-        location: { lat: order.locationLat, lng: order.locationLng },
-        price: order.priceEstimated
-      });
+      this.eventsGateway.notifyUser(candidate.providerId, 'booking.new', order);
       this.logger.log(`Notified provider ${candidate.providerId} via WebSocket`);
     }
 

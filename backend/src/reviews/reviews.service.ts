@@ -15,7 +15,7 @@ export class ReviewsService {
         private providersService: ProvidersService,
     ) { }
 
-    async create(customerId: string, createReviewDto: { orderId: string; rating: number; comment?: string }) {
+    async create(customerId: string, createReviewDto: { orderId: string; rating: number; comment?: string; tags?: string[] }) {
         // 1. Validate Order
         const order = await this.ordersRepository.findOne({
             where: { id: createReviewDto.orderId },
@@ -49,6 +49,7 @@ export class ReviewsService {
             orderId: order.id,
             rating: createReviewDto.rating,
             comment: createReviewDto.comment,
+            tags: createReviewDto.tags || []
         });
 
         const savedReview = await this.reviewsRepository.save(review);

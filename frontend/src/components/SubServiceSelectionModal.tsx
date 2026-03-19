@@ -12,11 +12,13 @@ interface Props {
     serviceName: string;
     subServices: SubService[];
     onClose: () => void;
-    onConfirm: (selectedItems: SubService[], totalPrice: number) => void;
+    onConfirm: (selectedItems: SubService[], totalPrice: number, scheduledAt: string | null) => void;
 }
 
 const SubServiceSelectionModal: React.FC<Props> = ({ serviceName, subServices, onClose, onConfirm }) => {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [scheduledDate, setScheduledDate] = useState<string>('');
+    const [scheduledTime, setScheduledTime] = useState<string>('');
 
     const toggleService = (id: string) => {
         setSelectedIds(prev =>
@@ -26,6 +28,16 @@ const SubServiceSelectionModal: React.FC<Props> = ({ serviceName, subServices, o
 
     const selectedItems = subServices.filter(s => selectedIds.includes(s.id));
     const totalPrice = selectedItems.reduce((sum, item) => sum + item.price, 0);
+
+    const handleConfirm = () => {
+        let scheduledAt: string | null = null;
+        if (scheduledDate && scheduledTime) {
+            // Combine date and time strings to create an ISO string
+            const dt = new Date(`${scheduledDate}T${scheduledTime}`);
+            scheduledAt = dt.toISOString();
+        }
+        onConfirm(selectedItems, totalPrice > 0 ? totalPrice : 500, scheduledAt);
+    };
 
     return (
         <div style={{
@@ -49,7 +61,7 @@ const SubServiceSelectionModal: React.FC<Props> = ({ serviceName, subServices, o
 
                 <p style={{ color: '#a0a0b0', marginBottom: '20px' }}>Select specific tasks for accurate pricing</p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '80px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
                     {subServices.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                             No specific items listed. You can proceed with general booking.
@@ -78,6 +90,30 @@ const SubServiceSelectionModal: React.FC<Props> = ({ serviceName, subServices, o
                         }))}
                 </div>
 
+                {/* Scheduling Section */}
+                <div style={{
+                    padding: '15px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)',
+                    marginBottom: '80px' // Space for bottom bar
+                }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: 'white' }}>Schedule for later? (Optional)</h4>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <input 
+                            type="date" 
+                            style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}
+                            min={new Date().toISOString().split('T')[0]} // prevent past dates
+                            value={scheduledDate}
+                            onChange={(e) => setScheduledDate(e.target.value)}
+                        />
+                        <input 
+                            type="time" 
+                            style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}
+                            value={scheduledTime}
+                            onChange={(e) => setScheduledTime(e.target.value)}
+                        />
+                    </div>
+                    {(scheduledDate && !scheduledTime) && <div style={{ color: '#fdcb6e', fontSize: '12px', marginTop: '5px' }}>Please select a time as well.</div>}
+                </div>
+
                 {/* Bottom Bar */}
                 <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -90,9 +126,9 @@ const SubServiceSelectionModal: React.FC<Props> = ({ serviceName, subServices, o
                     </div>
                     <button
                         className="btn-primary"
-                        onClick={() => onConfirm(selectedItems, totalPrice > 0 ? totalPrice : 500)}
-                        disabled={subServices.length > 0 && selectedIds.length === 0}
-                        style={{ padding: '12px 30px', borderRadius: '12px', opacity: (subServices.length > 0 && selectedIds.length === 0) ? 0.5 : 1 }}
+                        onClick={handleConfirm}
+                        disabled={(subServices.length > 0 && selectedIds.length === 0) || (!!scheduledDate !== !!scheduledTime)}
+                        style={{ padding: '12px 30px', borderRadius: '12px', opacity: ((subServices.length > 0 && selectedIds.length === 0) || (!!scheduledDate !== !!scheduledTime)) ? 0.5 : 1 }}
                     >
                         Find Provider
                     </button>

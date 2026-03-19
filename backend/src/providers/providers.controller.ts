@@ -70,4 +70,9 @@ export class ProvidersController {
   async search(@Body() body: { lat: number; lng: number; serviceType: string }) {
     return this.providersService.searchProviders(body.lat, body.lng, body.serviceType);
   }
+
+  @Get('earnings')
+  async getEarnings(@Request() req: AuthenticatedRequest) {
+    return this.providersService.getProviderEarnings(req.user.userId);
+  }
 }

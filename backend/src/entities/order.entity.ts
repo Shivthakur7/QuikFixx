@@ -56,6 +56,9 @@ export class Order {
   @Column('decimal', { precision: 11, scale: 8 })
   locationLng: number;
 
+  @Column({ type: 'timestamp', nullable: true })
+  scheduledAt: Date;
+
   @Index({ spatial: true })
   @Column({
     type: 'geometry',

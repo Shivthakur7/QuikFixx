@@ -15,7 +15,16 @@ const RateProviderModal: React.FC<RateProviderModalProps> = ({ visible, booking,
     const { showToast } = useToast();
     const [rating, setRating] = useState(5);
     const [comment, setComment] = useState('');
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
+
+    const AVAILABLE_TAGS = ['On Time', 'Clean', 'Professional', 'Knowledgeable', 'Friendly', 'Affordable', 'Messy', 'Late'];
+
+    const toggleTag = (tag: string) => {
+        setSelectedTags(prev => 
+            prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+        );
+    };
 
     const handleSubmit = async () => {
         if (!booking?.id) {
@@ -28,11 +37,13 @@ const RateProviderModal: React.FC<RateProviderModalProps> = ({ visible, booking,
             await client.post('/reviews', {
                 orderId: booking.id,   // backend expects orderId, not providerId
                 rating,
-                comment: comment.trim() || undefined
+                comment: comment.trim() || undefined,
+                tags: selectedTags
             });
             showToast('Thank you for your review!', 'success');
             setRating(5);
             setComment('');
+            setSelectedTags([]);
             onSuccess();
             onClose();
         } catch (err: any) {
@@ -74,6 +85,26 @@ const RateProviderModal: React.FC<RateProviderModalProps> = ({ visible, booking,
                         {renderStars()}
                     </View>
 
+                    <View style={styles.tagsContainer}>
+                        {AVAILABLE_TAGS.map(tag => (
+                            <TouchableOpacity
+                                key={tag}
+                                onPress={() => toggleTag(tag)}
+                                style={[
+                                    styles.tagButton,
+                                    selectedTags.includes(tag) && styles.tagButtonSelected
+                                ]}
+                            >
+                                <Text style={[
+                                    styles.tagText,
+                                    selectedTags.includes(tag) && styles.tagTextSelected
+                                ]}>
+                                    {tag}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
                     <TextInput
                         style={styles.commentInput}
                         placeholder="Leave a comment (optional)"
@@ -110,7 +141,15 @@ const styles = StyleSheet.create({
     closeButton: { position: 'absolute', top: 15, right: 15, zIndex: 1 },
     title: { fontSize: 22, fontWeight: 'bold', color: 'white', textAlign: 'center', marginBottom: 10 },
     providerName: { fontSize: 16, color: '#a0a0b0', textAlign: 'center', marginBottom: 20 },
-    starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 25 },
+    starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 20 },
+    tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 20 },
+    tagButton: {
+        paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16,
+        borderWidth: 1, borderColor: '#636e72', backgroundColor: 'transparent'
+    },
+    tagButtonSelected: { borderColor: '#6c5ce7', backgroundColor: 'rgba(108, 92, 231, 0.2)' },
+    tagText: { color: '#a0a0b0', fontSize: 12 },
+    tagTextSelected: { color: '#a29bfe' },
     commentInput: {
         backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 15,
         color: 'white', fontSize: 14, minHeight: 80, textAlignVertical: 'top'

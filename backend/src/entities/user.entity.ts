@@ -25,6 +25,9 @@ export class User {
   @Column({ nullable: true })
   address: string;
 
+  @Column({ default: false })
+  isAdmin: boolean;
+
   @Column({ select: false }) // Don't return password by default
   passwordHash: string;
 

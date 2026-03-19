@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, Alert, Platform } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, TextInput, Alert, Platform, Linking, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
 import client from '../api/client';
-import { User, DollarSign, Check, X, MapPin, Briefcase, Calendar } from 'lucide-react-native';
+import { User, DollarSign, Check, X, MapPin, Briefcase, Calendar, Navigation, Phone, MapPin as MapPinIcon } from 'lucide-react-native';
 import * as Location from 'expo-location';
 
 const ProviderDashboardScreen = ({ navigation }: any) => {
@@ -17,6 +17,7 @@ const ProviderDashboardScreen = ({ navigation }: any) => {
     const [loading, setLoading] = useState(true);
     const [otpInputs, setOtpInputs] = useState<{ [key: string]: string }>({});
     const [locationPermission, setLocationPermission] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         requestLocationPermission();
@@ -28,7 +29,23 @@ const ProviderDashboardScreen = ({ navigation }: any) => {
                 setBookings(prev => [data, ...prev]);
             });
 
-            return () => { socket.off('booking.new'); };
+            socket.on('providerLocationRequested', async (data: any) => {
+                try {
+                    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                    socket.emit('updateLocation', {
+                        bookingId: data.bookingId,
+                        lat: loc.coords.latitude,
+                        lng: loc.coords.longitude
+                    });
+                } catch (e) {
+                    console.log("Failed to get manual location ping:", e);
+                }
+            });
+
+            return () => { 
+                socket.off('booking.new'); 
+                socket.off('providerLocationRequested');
+            };
         }
     }, [socket]);
 
@@ -54,13 +71,33 @@ const ProviderDashboardScreen = ({ navigation }: any) => {
     useEffect(() => {
         if (!socket || !locationPermission) return;
         let subscription: Location.LocationSubscription | null = null;
+        let isMounted = true;
 
         const activeBookings = bookings.filter(b => b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS');
 
         if (activeBookings.length > 0) {
             (async () => {
+                try {
+                    // Instantly grab position to avoid waiting for physical movement
+                    const initialLocation = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                    if (isMounted) {
+                        activeBookings.forEach(booking => {
+                            socket.emit('updateLocation', {
+                                bookingId: booking.id,
+                                lat: initialLocation.coords.latitude,
+                                lng: initialLocation.coords.longitude
+                            });
+                        });
+                    }
+                } catch (e) {
+                    console.log("Initial location fetch failed:", e);
+                }
+
+                if (!isMounted) return;
+
+                // Then setup watcher for continuous updates
                 subscription = await Location.watchPositionAsync(
-                    { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
+                    { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 5 },
                     (location) => {
                         activeBookings.forEach(booking => {
                             socket.emit('updateLocation', {
@@ -71,10 +108,16 @@ const ProviderDashboardScreen = ({ navigation }: any) => {
                         });
                     }
                 );
+                
+                // If unmounted while waiting for watchPositionAsync
+                if (!isMounted && subscription) {
+                    subscription.remove();
+                }
             })();
         }
 
         return () => {
+            isMounted = false;
             if (subscription) subscription.remove();
         };
     }, [socket, bookings, locationPermission]);
@@ -94,7 +137,13 @@ const ProviderDashboardScreen = ({ navigation }: any) => {
             showToast('Failed to load data', 'error');
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    };
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        loadData();
     };
 
     const handleStatusUpdate = async (bookingId: string, status: 'ACCEPTED' | 'CANCELLED') => {
@@ -118,6 +167,14 @@ const ProviderDashboardScreen = ({ navigation }: any) => {
         try {
             await client.post(`/bookings/${bookingId}/verify-${type}-otp`, { otp });
             showToast(`${type === 'start' ? 'Job Started' : 'Job Completed'} Successfully`, 'success');
+            
+            // Clear the OTP input for this booking
+            setOtpInputs(prev => {
+                const newInputs = { ...prev };
+                delete newInputs[bookingId];
+                return newInputs;
+            });
+            
             loadData();
         } catch (err: any) {
             showToast(err.response?.data?.message || 'Invalid OTP', 'error');
@@ -135,6 +192,20 @@ const ProviderDashboardScreen = ({ navigation }: any) => {
         }
     };
 
+    const openMapsNavigation = (lat: number, lng: number) => {
+        if (!lat || !lng) return showToast("Customer location not provided", "error");
+        const url = Platform.select({
+            ios: `maps:0,0?q=${lat},${lng}`,
+            android: `geo:${lat},${lng}?q=${lat},${lng}`
+        });
+        if (url) Linking.openURL(url);
+    };
+
+    const callCustomer = (phone: string) => {
+        if (!phone) return showToast("Customer phone not provided", "error");
+        Linking.openURL(`tel:${phone}`);
+    };
+
     const renderBooking = ({ item }: any) => (
         <View style={styles.bookingCard}>
             <View style={styles.bookingHeader}>
@@ -147,12 +218,20 @@ const ProviderDashboardScreen = ({ navigation }: any) => {
             {/* Customer Info */}
             <View style={styles.infoRow}>
                 <User size={14} color="#a0a0b0" />
-                <Text style={styles.infoText}>{item.user?.fullName || item.customer?.fullName || 'Customer'}</Text>
+                <Text style={styles.infoText}>{item.customer?.fullName || 'Customer'}</Text>
             </View>
 
-            {item.user?.phone && (
+            {item.customer?.phoneNumber && (
+                <TouchableOpacity style={styles.infoRow} onPress={() => callCustomer(item.customer.phoneNumber)}>
+                    <Phone size={14} color="#27ae60" />
+                    <Text style={[styles.phoneText, { color: '#27ae60', marginLeft: 8 }]}>{item.customer.phoneNumber}</Text>
+                </TouchableOpacity>
+            )}
+
+            {item.address && (
                 <View style={styles.infoRow}>
-                    <Text style={styles.phoneText}>📞 {item.user.phone}</Text>
+                    <MapPinIcon size={14} color="#a0a0b0" />
+                    <Text style={styles.infoText} numberOfLines={2}>{item.address}</Text>
                 </View>
             )}
 
@@ -186,6 +265,17 @@ const ProviderDashboardScreen = ({ navigation }: any) => {
                         <Text style={styles.actionButtonText}>Reject</Text>
                     </TouchableOpacity>
                 </View>
+            )}
+
+            {/* Navigation Button for ACCEPTED / IN_PROGRESS */}
+            {(item.status === 'ACCEPTED' || item.status === 'IN_PROGRESS') && item.locationLat && item.locationLng && (
+                <TouchableOpacity
+                    style={styles.navigateButton}
+                    onPress={() => openMapsNavigation(item.locationLat, item.locationLng)}
+                >
+                    <Navigation size={18} color="white" />
+                    <Text style={styles.actionButtonText}>Navigate to Customer</Text>
+                </TouchableOpacity>
             )}
 
             {/* OTP Input for ACCEPTED */}
@@ -259,10 +349,13 @@ const ProviderDashboardScreen = ({ navigation }: any) => {
 
                 {/* Quick Stats - Matching Web */}
                 <View style={styles.statsRow}>
-                    <View style={styles.statCard}>
+                    <TouchableOpacity 
+                        style={styles.statCard} 
+                        onPress={() => navigation.navigate('ProviderEarnings')}
+                    >
                         <Text style={styles.statLabel}>Earnings</Text>
                         <Text style={styles.statValue}>₹{balance.toFixed(2)}</Text>
-                    </View>
+                    </TouchableOpacity>
                     <View style={styles.statCard}>
                         <Text style={styles.statLabel}>Jobs</Text>
                         <Text style={styles.statValue}>{bookings.length}</Text>
@@ -281,6 +374,14 @@ const ProviderDashboardScreen = ({ navigation }: any) => {
                     renderItem={renderBooking}
                     keyExtractor={item => item.id}
                     contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                            colors={['#6c5ce7']}
+                            tintColor="#6c5ce7"
+                        />
+                    }
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <Briefcase size={48} color="#666" />
@@ -356,6 +457,11 @@ const styles = StyleSheet.create({
     acceptButton: { backgroundColor: '#27ae60' },
     rejectButton: { backgroundColor: '#e74c3c' },
     actionButtonText: { color: 'white', fontWeight: 'bold', marginLeft: 5 },
+
+    navigateButton: {
+        flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+        backgroundColor: '#3498db', padding: 12, borderRadius: 12, marginTop: 15
+    },
 
     otpSection: { marginTop: 15, padding: 12, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 12 },
     otpLabel: { color: '#a0a0b0', fontSize: 12, marginBottom: 8 },

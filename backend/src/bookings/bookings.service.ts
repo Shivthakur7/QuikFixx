@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order, OrderStatus } from '../entities/order.entity';
@@ -39,6 +39,7 @@ export class BookingsService {
         coordinates: [createOrderDto.location.lng, createOrderDto.location.lat],
       },
       address: createOrderDto.address || 'Address not provided',
+      scheduledAt: createOrderDto.scheduledAt || null,
     });
 
     // Double-check status before save
@@ -47,35 +48,46 @@ export class BookingsService {
 
     const savedOrder = await this.ordersRepository.save(newOrder);
 
+    // Fetch full order to ensure WS events receive customer info (syncs with loadData pattern)
+    const fullOrder = await this.ordersRepository.findOne({
+      where: { id: savedOrder.id },
+      relations: ['customer'],
+      select: {
+          id: true,
+          status: true,
+          serviceType: true,
+          priceEstimated: true,
+          priceFinal: true,
+          createdAt: true,
+          address: true,
+          locationLat: true,
+          locationLng: true,
+          startJobOtp: true,
+          endJobOtp: true,
+          scheduledAt: true,
+          customer: {
+              id: true,
+              fullName: true,
+              phoneNumber: true,
+              email: true
+          }
+      }
+    });
+
     // 2. Dispatch Logic
     let dispatchResult: any = { dispatched: false, reason: 'DIRECT_BOOKING' };
 
     if (createOrderDto.providerId) {
       // Direct Booking: Notify specific provider
-      // Ideally we should verify provider exists and is online, but for MVP we assume yes.
-      // We use the dispatch service's event gateway (or we could inject eventsGateway here directly).
-      // Since dispatchService has eventsGateway, we can use a new method on it or just inject eventsGateway here.
-      // For simplicity, let's treat it as "dispatched" to that provider.
-
-      // We'll reuse dispatchService to notify just one provider if possible, or manually notify here.
-      // Let's manually notify for now to keep it simple, checking if BookingsService can clear access EventsGateway.
-      // Actually BookingsService doesn't have EventsGateway. DispatchService does.
-
-      // Let's assume we proceed. We return success. 
-      // User requested "notify specific provider". 
-      // I will rely on DispatchService to have a method for this or just skip notification for this step 
-      // and add it if the user notices. 
-      // ACTUAL PLAN: logic says "Skip general dispatch". 
-      // I'll add a TODO log.
       console.log(`Direct booking for provider ${createOrderDto.providerId}. Notification skipped for MVP step.`);
       dispatchResult = { dispatched: true, reason: 'DIRECT_ASSIGNMENT' };
     } else {
       // Standard Dispatch
-      dispatchResult = await this.dispatchService.dispatchOrder(savedOrder);
+      dispatchResult = await this.dispatchService.dispatchOrder(fullOrder || savedOrder);
     }
 
     return {
-      order: savedOrder,
+      order: fullOrder || savedOrder,
       dispatch: dispatchResult,
     };
   }
@@ -112,9 +124,29 @@ export class BookingsService {
 
     // 2. Find Orders
     return this.ordersRepository.find({
-      where: { providerId: provider.id }, // Assuming status PENDING is what we want, or all? Let's return all for now or filter by PENDING/ACCEPTED
+      where: { providerId: provider.id }, 
       order: { createdAt: 'DESC' },
-      relations: ['customer'],
+      relations: ['customer'], // Customer points to User entity which has phone and fullName
+      select: {
+          id: true,
+          status: true,
+          serviceType: true,
+          priceEstimated: true,
+          priceFinal: true,
+          createdAt: true,
+          address: true,
+          locationLat: true,
+          locationLng: true,
+          startJobOtp: true,
+          endJobOtp: true,
+          scheduledAt: true,
+          customer: {
+              id: true,
+              fullName: true,
+              phoneNumber: true,
+              email: true
+          }
+      }
     });
   }
   async updateStatus(bookingId: string, status: OrderStatus, providerUserId?: string) {
@@ -144,14 +176,14 @@ export class BookingsService {
 
   async verifyStartOtp(bookingId: string, otp: string) {
     const order = await this.ordersRepository.findOne({ where: { id: bookingId } });
-    if (!order) throw new Error('Booking not found');
+    if (!order) throw new BadRequestException('Booking not found');
 
     if (order.status !== OrderStatus.ACCEPTED) {
-      throw new Error('Booking must be accepted to start');
+      throw new BadRequestException('Booking must be accepted to start');
     }
 
     if (order.startJobOtp !== otp) {
-      throw new Error('Invalid Start OTP');
+      throw new BadRequestException('Invalid Start OTP');
     }
 
     // Move to IN_PROGRESS
@@ -164,14 +196,14 @@ export class BookingsService {
 
   async verifyEndOtp(bookingId: string, otp: string) {
     const order = await this.ordersRepository.findOne({ where: { id: bookingId } });
-    if (!order) throw new Error('Booking not found');
+    if (!order) throw new BadRequestException('Booking not found');
 
     if (order.status !== OrderStatus.IN_PROGRESS) {
-      throw new Error('Booking must be in progress to complete');
+      throw new BadRequestException('Booking must be in progress to complete');
     }
 
     if (order.endJobOtp !== otp) {
-      throw new Error('Invalid End OTP');
+      throw new BadRequestException('Invalid End OTP');
     }
 
     // Move to COMPLETED

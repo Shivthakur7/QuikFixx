@@ -32,8 +32,8 @@ export class AuthService {
 
   async login(user: any) {
     const role = user.provider ? 'provider' : 'customer';
-    console.log(`User ${user.email} logged in with role: ${role}`);
-    const payload = { email: user.email, sub: user.id, role };
+    console.log(`User ${user.email} logged in with role: ${role}, isAdmin: ${user.isAdmin}`);
+    const payload = { email: user.email, sub: user.id, role, isAdmin: user.isAdmin || false };
     return {
       access_token: this.jwtService.sign(payload),
       user: { ...user, role }, // Include role in user object for mobile app

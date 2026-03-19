@@ -88,7 +88,7 @@ const HomePage: React.FC = () => {
 
 
     const [selectedServiceForModal, setSelectedServiceForModal] = useState<any>(null);
-    const [bookingDetails, setBookingDetails] = useState<{ items: any[], price: number }>({ items: [], price: 0 });
+    const [bookingDetails, setBookingDetails] = useState<{ items: any[], price: number, scheduledAt?: string | null }>({ items: [], price: 0, scheduledAt: null });
 
     const handleServiceSelect = (serviceId: string) => {
         const service = servicesList.find(s => s.id === serviceId);
@@ -100,15 +100,15 @@ const HomePage: React.FC = () => {
         }
     };
 
-    const handleSubServiceConfirm = (selectedItems: any[], totalPrice: number) => {
+    const handleSubServiceConfirm = (selectedItems: any[], totalPrice: number, scheduledAt: string | null) => {
         if (!selectedServiceForModal) return;
 
-        startProviderSearch(selectedServiceForModal.id, selectedItems, totalPrice);
+        startProviderSearch(selectedServiceForModal.id, selectedItems, totalPrice, scheduledAt);
         setSelectedServiceForModal(null);
     };
 
-    const startProviderSearch = async (serviceId: string, items: any[], price: number) => {
-        setBookingDetails({ items, price });
+    const startProviderSearch = async (serviceId: string, items: any[], price: number, scheduledAt: string | null = null) => {
+        setBookingDetails({ items, price, scheduledAt });
         setViewMode('map');
 
         // Trigger search immediately
@@ -149,13 +149,14 @@ const HomePage: React.FC = () => {
                 address: addressText, // Send selected address
                 providerId: provider.providerEntityId, // Use the actual Provider ID
                 items: bookingDetails.items,
-                price: bookingDetails.price
+                price: bookingDetails.price,
+                scheduledAt: bookingDetails.scheduledAt || null
             });
             showToast('Booking request sent to ' + (provider.name || 'provider'), 'success');
             navigate('/account');
             setProviders([]);
             setViewMode('dashboard');
-            setBookingDetails({ items: [], price: 0 });
+            setBookingDetails({ items: [], price: 0, scheduledAt: null });
         } catch (err) {
             console.error(err);
             showToast('Failed to book provider', 'error');

@@ -15,7 +15,7 @@ export class ReviewsController {
     @Post()
     async createReview(
         @Request() req: AuthenticatedRequest,
-        @Body() body: { orderId: string; rating: number; comment?: string }
+        @Body() body: { orderId: string; rating: number; comment?: string; tags?: string[] }
     ) {
         return this.reviewsService.create(req.user.userId, body);
     }

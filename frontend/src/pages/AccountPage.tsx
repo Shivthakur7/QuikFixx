@@ -46,6 +46,7 @@ const AccountPage: React.FC = () => {
 
         console.log(`Joining booking room: ${trackingBookingId}`);
         socket.emit('joinBooking', { bookingId: trackingBookingId });
+        socket.emit('requestProviderLocation', { bookingId: trackingBookingId });
 
         const handleLocation = (data: any) => {
             console.log('Provider Location Update:', data);
@@ -110,7 +111,7 @@ const AccountPage: React.FC = () => {
                             </span>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '15px', flexWrap: 'wrap' }}>
                             <button
                                 onClick={() => setIsEditingAddress(true)}
                                 className="btn-primary"

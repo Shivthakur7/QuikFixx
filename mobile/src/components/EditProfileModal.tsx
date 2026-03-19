@@ -28,9 +28,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, user, onCl
 
         setLoading(true);
         try {
-            const res = await client.put('/users/profile', {
+            const res = await client.patch('/users/profile', {
                 fullName: formData.fullName.trim(),
-                phone: formData.phone.trim(),
+                phoneNumber: formData.phone.trim(),
                 address: formData.address.trim()
             });
             showToast('Profile updated successfully', 'success');

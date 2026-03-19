@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Modal, Dimensions, Linking, Platform } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Modal, Dimensions, Linking, Platform, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, MapPin, Clock, Star, Edit2, X, Navigation, Phone } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
@@ -8,7 +8,7 @@ import { useToast } from '../context/ToastContext';
 import client from '../api/client';
 import RateProviderModal from '../components/RateProviderModal';
 import EditProfileModal from '../components/EditProfileModal';
-import { WebView } from 'react-native-webview';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,6 +26,7 @@ const AccountScreen = ({ navigation }: any) => {
     const [trackingModalVisible, setTrackingModalVisible] = useState(false);
     const [trackingBooking, setTrackingBooking] = useState<any>(null);
     const [providerLocation, setProviderLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         fetchBookings();
@@ -37,6 +38,7 @@ const AccountScreen = ({ navigation }: any) => {
 
         console.log(`Joining booking room: ${trackingBooking.id}`);
         socket.emit('joinBooking', { bookingId: trackingBooking.id });
+        socket.emit('requestProviderLocation', { bookingId: trackingBooking.id });
 
         const handleLocation = (data: any) => {
             console.log('Provider Location Update:', data);
@@ -59,7 +61,13 @@ const AccountScreen = ({ navigation }: any) => {
             showToast("Failed to load bookings", "error");
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    };
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        fetchBookings();
     };
 
     const startTracking = (booking: any) => {
@@ -93,32 +101,7 @@ const AccountScreen = ({ navigation }: any) => {
         }
     };
 
-    // Generate map HTML using OpenStreetMap (works in WebView without native modules)
-    const getMapHtml = (lat: number, lng: number) => `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-            <style>
-                body { margin: 0; padding: 0; }
-                #map { width: 100%; height: 100vh; }
-            </style>
-        </head>
-        <body>
-            <div id="map"></div>
-            <script>
-                var map = L.map('map').setView([${lat}, ${lng}], 16);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap'
-                }).addTo(map);
-                var marker = L.marker([${lat}, ${lng}]).addTo(map);
-                marker.bindPopup('<b>Provider</b><br>Current Location').openPopup();
-            </script>
-        </body>
-        </html>
-    `;
+    // Map is natively handled now
 
     const renderBooking = ({ item }: any) => (
         <View style={styles.bookingCard}>
@@ -204,7 +187,16 @@ const AccountScreen = ({ navigation }: any) => {
                 <View style={{ width: 24 }} />
             </View>
 
-            <ScrollView>
+            <ScrollView
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        colors={['#6c5ce7']}
+                        tintColor="#6c5ce7"
+                    />
+                }
+            >
                 {/* Profile Card */}
                 <View style={styles.profileCard}>
                     <View style={styles.profileAvatar}>
@@ -240,11 +232,12 @@ const AccountScreen = ({ navigation }: any) => {
                     )}
                 </View>
 
-                {/* Logout Button */}
-                <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-                    <Text style={styles.logoutText}>Logout</Text>
-                </TouchableOpacity>
             </ScrollView>
+
+            {/* Logout FAB */}
+            <TouchableOpacity style={styles.logoutFab} onPress={logout}>
+                <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
 
             {/* Tracking Modal with WebView Map */}
             <Modal visible={trackingModalVisible} animationType="slide">
@@ -279,15 +272,34 @@ const AccountScreen = ({ navigation }: any) => {
                         </View>
                     )}
 
-                    {/* Map View using WebView with Leaflet */}
+                    {/* Map View using Native MapView */}
                     <View style={styles.mapContainer}>
                         {providerLocation ? (
-                            <WebView
-                                source={{ html: getMapHtml(providerLocation.lat, providerLocation.lng) }}
+                            <MapView
+                                provider={PROVIDER_GOOGLE}
                                 style={styles.map}
-                                javaScriptEnabled={true}
-                                domStorageEnabled={true}
-                            />
+                                initialRegion={{
+                                    latitude: providerLocation.lat,
+                                    longitude: providerLocation.lng,
+                                    latitudeDelta: 0.01,
+                                    longitudeDelta: 0.01,
+                                }}
+                                region={{
+                                    latitude: providerLocation.lat,
+                                    longitude: providerLocation.lng,
+                                    latitudeDelta: 0.01,
+                                    longitudeDelta: 0.01,
+                                }}
+                            >
+                                <Marker
+                                    coordinate={{
+                                        latitude: providerLocation.lat,
+                                        longitude: providerLocation.lng
+                                    }}
+                                    title="Provider Location"
+                                    description={trackingBooking?.provider?.user?.fullName}
+                                />
+                            </MapView>
                         ) : (
                             <View style={styles.waitingLocation}>
                                 <ActivityIndicator size="large" color="#6c5ce7" />
@@ -395,11 +407,12 @@ const styles = StyleSheet.create({
 
     emptyText: { color: '#a0a0b0', textAlign: 'center', marginTop: 30 },
 
-    logoutButton: {
-        margin: 20, padding: 15, backgroundColor: 'rgba(231, 76, 60, 0.2)',
-        borderRadius: 12, alignItems: 'center'
+    logoutFab: {
+        position: 'absolute', bottom: 30, right: 20,
+        backgroundColor: 'rgba(231, 76, 60, 0.9)', paddingVertical: 12, paddingHorizontal: 25,
+        borderRadius: 25, zIndex: 10
     },
-    logoutText: { color: '#e74c3c', fontWeight: 'bold', fontSize: 16 },
+    logoutText: { color: 'white', fontWeight: 'bold' },
 
     // Tracking Modal Styles
     trackingModalContainer: { flex: 1, backgroundColor: '#13131f' },

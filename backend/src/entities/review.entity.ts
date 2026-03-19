@@ -22,6 +22,9 @@ export class Review {
     @Column({ type: 'text', nullable: true })
     comment: string;
 
+    @Column({ type: 'jsonb', nullable: true })
+    tags: string[];
+
     @ManyToOne(() => User)
     @JoinColumn({ name: 'customer_id' })
     customer: User;

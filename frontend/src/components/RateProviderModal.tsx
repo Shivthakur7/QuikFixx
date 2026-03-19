@@ -13,8 +13,17 @@ const RateProviderModal: React.FC<RateProviderModalProps> = ({ bookingId, onClos
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [hoveredRating, setHoveredRating] = useState(0);
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { showToast } = useToast();
+
+    const AVAILABLE_TAGS = ['On Time', 'Clean', 'Professional', 'Knowledgeable', 'Friendly', 'Affordable', 'Messy', 'Late'];
+
+    const toggleTag = (tag: string) => {
+        setSelectedTags(prev => 
+            prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+        );
+    };
 
     const handleSubmit = async () => {
         if (rating === 0) {
@@ -27,7 +36,8 @@ const RateProviderModal: React.FC<RateProviderModalProps> = ({ bookingId, onClos
             await api.post('/reviews', {
                 orderId: bookingId,
                 rating,
-                comment
+                comment,
+                tags: selectedTags
             });
             showToast('Review submitted successfully!', 'success');
             onSuccess();
@@ -79,6 +89,27 @@ const RateProviderModal: React.FC<RateProviderModalProps> = ({ bookingId, onClos
                                 fill={(hoveredRating || rating) >= star ? '#fdcb6e' : 'transparent'}
                                 color={(hoveredRating || rating) >= star ? '#fdcb6e' : '#636e72'}
                             />
+                        </button>
+                    ))}
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginBottom: '20px' }}>
+                    {AVAILABLE_TAGS.map(tag => (
+                        <button
+                            key={tag}
+                            onClick={() => toggleTag(tag)}
+                            style={{
+                                padding: '6px 12px',
+                                borderRadius: '16px',
+                                border: `1px solid ${selectedTags.includes(tag) ? '#6c5ce7' : '#636e72'}`,
+                                background: selectedTags.includes(tag) ? 'rgba(108, 92, 231, 0.2)' : 'transparent',
+                                color: selectedTags.includes(tag) ? '#a29bfe' : '#a0a0b0',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {tag}
                         </button>
                     ))}
                 </div>

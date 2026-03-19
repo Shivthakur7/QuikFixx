@@ -12,9 +12,9 @@ import SubServiceSelectionScreen from '../screens/SubServiceSelectionScreen';
 import ProviderListScreen from '../screens/ProviderListScreen';
 import AccountScreen from '../screens/AccountScreen';
 
-// Provider Screens
 import ProviderDashboardScreen from '../screens/ProviderDashboardScreen';
 import ProviderAccountScreen from '../screens/ProviderAccountScreen';
+import ProviderEarningsScreen from '../screens/ProviderEarningsScreen';
 
 // Auth Screens
 import LandingScreen from '../screens/LandingScreen';
@@ -41,6 +41,7 @@ const AppNavigator = () => {
                         <>
                             <Stack.Screen name="ProviderDashboard" component={ProviderDashboardScreen} />
                             <Stack.Screen name="ProviderAccount" component={ProviderAccountScreen} />
+                            <Stack.Screen name="ProviderEarnings" component={ProviderEarningsScreen} />
                         </>
                     ) : (
                         // Customer Stack

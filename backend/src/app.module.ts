@@ -12,6 +12,7 @@ import { ProvidersModule } from './providers/providers.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { EventsModule } from './events/events.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     BookingsModule,
     EventsModule,
     ReviewsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

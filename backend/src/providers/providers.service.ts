@@ -126,11 +126,35 @@ export class ProvidersService {
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           const experienceString = diffDays > 365 ? `${Math.floor(diffDays / 365)} Years` : `${diffDays} Days`;
 
+          // Calculate Top Tags
+          const reviews = await this.providersRepository.manager
+            .createQueryBuilder()
+            .select('review.tags')
+            .from('reviews', 'review')
+            .where('review.provider_id = :pid', { pid: providerDetails.id })
+            .andWhere('review.tags IS NOT NULL')
+            .getRawMany();
+
+          const tagCounts: Record<string, number> = {};
+          reviews.forEach(r => {
+            const tags = r.review_tags;
+            if (Array.isArray(tags)) {
+              tags.forEach(tag => {
+                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+              });
+            }
+          });
+          const popularTags = Object.entries(tagCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(entry => entry[0]);
+
           validCandidates.push({
             ...candidate,
             name: providerDetails.user.fullName,
             providerEntityId: providerDetails.id,
             skillTags: providerDetails.skillTags,
+            popularTags: popularTags,
             rating: providerDetails.rating, // Ensure we pass the rating from DB
             stats: {
               jobsDone: parseInt(jobsDone.count) || 0,
@@ -186,5 +210,41 @@ export class ProvidersService {
     await this.providersRepository.update(providerId, {
       rating: parseFloat(averageRating.toFixed(2))
     });
+  }
+
+  async getProviderEarnings(userId: string) {
+    const provider = await this.findByUserId(userId);
+    if (!provider) throw new NotFoundException('Provider not found');
+
+    const orders = await this.providersRepository.manager
+      .find('Order', {
+        where: { providerId: provider.id, status: 'COMPLETED' },
+      });
+
+    let totalEarnings = 0;
+    let thisWeekEarnings = 0;
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    orders.forEach((order: any) => {
+      const price = Number(order.priceFinal || order.priceEstimated || 0);
+      totalEarnings += price;
+      if (new Date(order.updatedAt) > oneWeekAgo) {
+        thisWeekEarnings += price;
+      }
+    });
+
+    return {
+      totalEarnings,
+      thisWeekEarnings,
+      completedJobs: orders.length,
+      balance: provider.balance,
+      history: orders.map((o: any) => ({
+        id: o.id,
+        serviceType: o.serviceType,
+        price: Number(o.priceFinal || o.priceEstimated || 0),
+        date: o.updatedAt
+      }))
+    };
   }
 }

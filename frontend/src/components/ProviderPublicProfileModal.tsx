@@ -78,6 +78,24 @@ const ProviderPublicProfileModal: React.FC<ProviderPublicProfileModalProps> = ({
                         </div>
                     </div>
 
+                    {/* Popular Tags */}
+                    {provider.popularTags && provider.popularTags.length > 0 && (
+                        <div style={{ marginTop: '15px' }}>
+                            <div style={{ fontSize: '12px', color: '#a0a0b0', marginBottom: '8px' }}>Top Highlights</div>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                {provider.popularTags.map((tag: string, i: number) => (
+                                    <div key={i} style={{
+                                        padding: '4px 10px', background: 'rgba(253, 203, 110, 0.15)',
+                                        color: '#fdcb6e', borderRadius: '12px', fontSize: '11px',
+                                        border: '1px solid rgba(253, 203, 110, 0.3)'
+                                    }}>
+                                        👍 {tag}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Stats */}
                     <div style={{
                         display: 'flex', justifyContent: 'space-between',

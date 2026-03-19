@@ -20,6 +20,7 @@ export class UsersService {
         'fullName',
         'phoneNumber',
         'address',
+        'isAdmin',
         'createdAt',
       ], // Explicitly select passwordHash for auth
       relations: ['provider'],

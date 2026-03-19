@@ -7,7 +7,7 @@ import * as Location from 'expo-location';
 import { useToast } from '../context/ToastContext';
 
 const ProviderListScreen = ({ route, navigation }: any) => {
-    const { serviceId, subServiceId, subServiceName, subServicePrice, userCoords: passedCoords } = route.params;
+    const { serviceId, subServiceId, subServiceName, subServicePrice, userCoords: passedCoords, scheduledAt } = route.params;
     const { showToast } = useToast();
     const [providers, setProviders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -91,7 +91,8 @@ const ProviderListScreen = ({ route, navigation }: any) => {
                 serviceType: serviceLabel,
                 providerId: provider.providerEntityId,  // providerEntityId is the actual Provider table ID returned by /providers/search
                 location: userLocation,
-                price: subServicePrice || 500
+                price: subServicePrice || 500,
+                scheduledAt: scheduledAt || null
             };
 
             console.log('Booking payload:', payload);
@@ -131,6 +132,16 @@ const ProviderListScreen = ({ route, navigation }: any) => {
                     </View>
                     <Text style={styles.price}>₹{subServicePrice || 500}</Text>
                 </View>
+
+                {item.popularTags && item.popularTags.length > 0 && (
+                    <View style={styles.tagsRow}>
+                        {item.popularTags.map((tag: string, index: number) => (
+                            <View key={index} style={styles.tagBadge}>
+                                <Text style={styles.tagBadgeText}>👍 {tag}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
 
                 <View style={styles.cardFooter}>
                     <View style={styles.locationRow}>
@@ -236,6 +247,12 @@ const styles = StyleSheet.create({
     ratingText: { color: '#a0a0b0', fontSize: 12, marginLeft: 5 },
     bioText: { color: '#888', fontSize: 12, marginTop: 4 },
     price: { fontSize: 18, fontWeight: 'bold', color: '#00cec9' },
+    tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 15 },
+    tagBadge: {
+        backgroundColor: 'rgba(253, 203, 110, 0.15)', paddingVertical: 4, paddingHorizontal: 8,
+        borderRadius: 12, borderWidth: 1, borderColor: 'rgba(253, 203, 110, 0.3)'
+    },
+    tagBadgeText: { color: '#fdcb6e', fontSize: 10, fontWeight: 'bold' },
 
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     locationRow: { flexDirection: 'row', alignItems: 'center' },

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
-import { Briefcase, User, Calendar, DollarSign, MapPin } from 'lucide-react';
+import { Briefcase, User, Calendar, DollarSign, MapPin, Phone, Navigation } from 'lucide-react';
 import api from '../utils/api';
 
 const ProviderDashboardPage: React.FC = () => {
@@ -77,6 +77,13 @@ const ProviderDashboardPage: React.FC = () => {
         try {
             await api.post(`/bookings/${bookingId}/verify-${type}-otp`, { otp });
             showToast(`${type === 'start' ? 'Job Started' : 'Job Completed'} Successfully`, 'success');
+
+            // Clear the OTP input for this booking
+            setOtpInputs(prev => {
+                const newInputs = { ...prev };
+                delete newInputs[bookingId];
+                return newInputs;
+            });
 
             // Refresh bookings and balance
             api.get('/bookings/provider/requests').then(res => setBookings(res.data));
@@ -165,6 +172,14 @@ const ProviderDashboardPage: React.FC = () => {
                                     <User size={14} />
                                     <span style={{ color: 'white' }}>{booking.customer ? booking.customer.fullName : 'Customer'}</span>
                                 </div>
+                                {booking.customer?.phoneNumber && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', marginBottom: '5px' }}>
+                                        <Phone size={14} color="#27ae60" />
+                                        <a href={`tel:${booking.customer.phoneNumber}`} style={{ color: '#27ae60', textDecoration: 'none' }}>
+                                            {booking.customer.phoneNumber}
+                                        </a>
+                                    </div>
+                                )}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '5px' }}>
                                     <MapPin size={14} />
                                     <span>{booking.address || (booking.locationGeo ? `${booking.locationLat}, ${booking.locationLng}` : 'Location provided')}</span>
@@ -179,6 +194,19 @@ const ProviderDashboardPage: React.FC = () => {
                                 </div>
 
                                 <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    {(booking.status === 'ACCEPTED' || booking.status === 'IN_PROGRESS') && booking.locationLat && booking.locationLng && (
+                                        <a
+                                            href={`https://www.google.com/maps/dir/?api=1&destination=${booking.locationLat},${booking.locationLng}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="btn-primary"
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', padding: '10px', background: '#3498db', textDecoration: 'none', color: 'white', borderRadius: '8px' }}
+                                        >
+                                            <Navigation size={18} />
+                                            Navigate to Customer
+                                        </a>
+                                    )}
+
                                     {booking.status === 'ACCEPTED' ? (
                                         <div style={{ display: 'flex', gap: '10px' }}>
                                             <input

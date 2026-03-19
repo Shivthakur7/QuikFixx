@@ -55,4 +55,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // Broadcast to the specific booking room so customers watching this booking see it
         this.server.to(`booking:${data.bookingId}`).emit('provider.location', data);
     }
+
+    @SubscribeMessage('requestProviderLocation')
+    handleRequestProviderLocation(@ConnectedSocket() client: Socket, @MessageBody() data: { bookingId: string }) {
+        this.logger.debug(`Customer requested location for booking ${data.bookingId}`);
+        // Notify providers in the room to broadcast their current location instantly
+        this.server.to(`booking:${data.bookingId}`).emit('providerLocationRequested', data);
+    }
 }
